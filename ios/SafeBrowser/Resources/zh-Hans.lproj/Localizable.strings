@@ -1,6 +1,29 @@
-/* General */
-"app.name" = "SafeBrowser";
-"app.version" = "版本 %@";
+/* Security */
+"security.title" = "安全设置";
+"security.connectionSection" = "连接";
+"security.blockingSection" = "拦截";
+"security.privacySection" = "隐私";
+"security.forceHTTPS" = "强制HTTPS";
+"security.forceHTTPSDesc" = "自动切换到安全的HTTPS连接（如果可用）";
+"security.allowJavaScript" = "允许JavaScript";
+"security.allowJavaScriptDesc" = "启用JavaScript以获得更好的网页体验";
+"security.privateMode" = "隐私浏览模式";
+"security.privateModeDesc" = "不保存浏览历史和Cookie";
+"security.blockAds" = "拦截广告";
+"security.blockAdsDesc" = "移除网页上的广告";
+"security.blockTrackers" = "拦截追踪器";
+"security.blockTrackersDesc" = "防止网站追踪您";
+"security.blockMalicious" = "拦截恶意网站";
+"security.blockMaliciousDesc" = "警告潜在危险的网站";
+"security.clearData" = "清除浏览数据";
+"security.clearDataConfirm" = "清除所有数据？";
+"security.clearDataMessage" = "这将删除所有浏览历史、Cookie和缓存。";
+"security.clear" = "清除";
+"security.cleared" = "已清除";
+"security.clearedMessage" = "所有浏览数据已被清除。";
+"security.connectionFooter" = "控制SafeBrowser连接网站的方式";
+"security.blockingFooter" = "在浏览时保护您的隐私和安全";
+"security.privacyFooter" = "管理您的隐私和数据";
 
 /* Navigation */
 "nav.back" = "后退";
@@ -78,6 +101,7 @@
 "accessibility.downloadButton" = "下载媒体";
 "accessibility.readingModeButton" = "阅读模式";
 "accessibility.shareButton" = "分享页面";
+"accessibility.securityButton" = "安全设置";
 "accessibility.addressBar" = "地址栏";
 "accessibility.webContent" = "网页内容";
 "accessibility.downloading" = "下载中";

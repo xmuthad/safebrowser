@@ -1,6 +1,29 @@
-/* General */
-"app.name" = "SafeBrowser";
-"app.version" = "Version %@";
+/* Security */
+"security.title" = "Security Settings";
+"security.connectionSection" = "Connection";
+"security.blockingSection" = "Blocking";
+"security.privacySection" = "Privacy";
+"security.forceHTTPS" = "Force HTTPS";
+"security.forceHTTPSDesc" = "Automatically switch to secure HTTPS connection when available";
+"security.allowJavaScript" = "Allow JavaScript";
+"security.allowJavaScriptDesc" = "Enable JavaScript for better web experience";
+"security.privateMode" = "Private Browsing";
+"security.privateModeDesc" = "Don't save browsing history or cookies";
+"security.blockAds" = "Block Ads";
+"security.blockAdsDesc" = "Remove advertisements from websites";
+"security.blockTrackers" = "Block Trackers";
+"security.blockTrackersDesc" = "Prevent websites from tracking you";
+"security.blockMalicious" = "Block Malicious Sites";
+"security.blockMaliciousDesc" = "Warn about potentially dangerous websites";
+"security.clearData" = "Clear Browsing Data";
+"security.clearDataConfirm" = "Clear All Data?";
+"security.clearDataMessage" = "This will delete all browsing history, cookies, and cache.";
+"security.clear" = "Clear";
+"security.cleared" = "Cleared";
+"security.clearedMessage" = "All browsing data has been cleared.";
+"security.connectionFooter" = "Control how SafeBrowser connects to websites";
+"security.blockingFooter" = "Protect your privacy and security while browsing";
+"security.privacyFooter" = "Manage your privacy and data";
 
 /* Navigation */
 "nav.back" = "Back";
@@ -78,6 +101,7 @@
 "accessibility.downloadButton" = "Download Media";
 "accessibility.readingModeButton" = "Reading Mode";
 "accessibility.shareButton" = "Share Page";
+"accessibility.securityButton" = "Security Settings";
 "accessibility.addressBar" = "Address Bar";
 "accessibility.webContent" = "Web Content";
 "accessibility.downloading" = "Downloading";
