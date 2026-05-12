@@ -1,0 +1,87 @@
+/* General */
+"app.name" = "SafeBrowser";
+"app.version" = "Version %@";
+
+/* Navigation */
+"nav.back" = "Back";
+"nav.forward" = "Forward";
+"nav.reload" = "Reload";
+"nav.share" = "Share";
+
+/* Address Bar */
+"address.placeholder" = "Enter URL or search";
+"address.searching" = "Searching...";
+
+/* Video */
+"video.options" = "Video Options";
+"video.fullscreen" = "Full Screen";
+"video.pip" = "Picture in Picture";
+"video.download" = "Download Video";
+"video.openPage" = "Open Video Page";
+"video.noVideo" = "No Video Found";
+"video.noVideoMessage" = "This page doesn't contain any detectable video. Try loading a video website like YouTube.";
+
+/* Download */
+"download.manager" = "Download Manager";
+"download.pageVideo" = "Download Page Video";
+"download.currentMedia" = "Download Current Media";
+"download.viewAll" = "View Downloads";
+"download.starting" = "Starting download...";
+"download.progress" = "Downloading: %d%% (%@ / %@)";
+"download.complete" = "Download Complete!";
+"download.failed" = "Download Failed";
+"download.cancel" = "Cancel";
+"download.noDownloads" = "No downloads yet";
+"download.count" = "%d video(s) downloaded";
+"download.share" = "Share";
+"download.viewInFiles" = "View in Files";
+"download.savedTo" = "Video saved to:\n%@";
+
+/* Reading Mode */
+"reading.mode" = "Reading Mode";
+"reading.noArticle" = "No Article Found";
+"reading.noArticleMessage" = "Reading mode couldn't find article content on this page. Try a news article or blog post.";
+"reading.preparing" = "Preparing reading mode...";
+"reading.exit" = "Exit Reading Mode";
+"reading.theme" = "Theme";
+"reading.fontIncrease" = "A+";
+"reading.fontDecrease" = "A-";
+"reading.reset" = "Reset";
+"reading.minRead" = "%d min read";
+"reading.byAuthor" = "By %@ • ";
+
+/* Theme */
+"theme.light" = "Light";
+"theme.sepia" = "Sepia";
+"theme.dark" = "Dark";
+
+/* Video Sites */
+"videoSites.title" = "Video Websites";
+"videoSites.choose" = "Choose a video platform to open:";
+"videoSites.youtube" = "YouTube";
+"videoSites.vimeo" = "Vimeo";
+"videoSites.dailymotion" = "Dailymotion";
+
+/* Errors */
+"error.invalidURL" = "Invalid URL";
+"error.invalidURLMessage" = "Please enter a valid web address.";
+"error.generic" = "Error";
+"error.ok" = "OK";
+"error.cancel" = "Cancel";
+
+/* Accessibility */
+"accessibility.backButton" = "Go Back";
+"accessibility.forwardButton" = "Go Forward";
+"accessibility.reloadButton" = "Reload Page";
+"accessibility.videoButton" = "Video Options";
+"accessibility.pipButton" = "Picture in Picture";
+"accessibility.downloadButton" = "Download Media";
+"accessibility.readingModeButton" = "Reading Mode";
+"accessibility.shareButton" = "Share Page";
+"accessibility.addressBar" = "Address Bar";
+"accessibility.webContent" = "Web Content";
+"accessibility.downloading" = "Downloading";
+
+/* Share */
+"share.title" = "Share";
+"share.cancel" = "Cancel";

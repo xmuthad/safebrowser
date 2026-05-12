@@ -1,0 +1,93 @@
+# Xcode
+#
+# gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+
+## Build generated
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Various Xcode formats
+# Xcode.user.xcworkspace
+# xcuserdata/
+*.xcuserstate
+*.xcworkspace
+!default.xcworkspace
+!default.xcuserstate
+
+## Pods - for those who want to sandbox their Xcode Installed Bundles
+# Pods/
+# !Pods/Podfile
+
+## Playgrounds
+# timeline.xctimeline
+# playground.xcworkspace
+
+## Swift Package Manager
+# Packages
+# Package.resolved
+*.xcodeproj
+!*.xcodeproj/project.pbxproj
+
+## Mac OS X
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+## IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+*.xcodeproj/
+
+## Android (if you plan to use it later)
+# android/app/build
+# android/.gradle
+# android/local.properties
+# android/*.iml
+# android/captures/
+# android/.idea/
+
+## Logs
+*.log
+
+## Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+## Carthage
+# Carthage/Build
+
+## Environment files (NEVER commit these!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+## Secrets and Keys (NEVER commit these!)
+*.pem
+*.key
+credentials.json
+google-services.json
+AndroidManifest.xml
+
+## Crashlytics
+# crashlytics.properties
+# crashlytics-symbols.properties
+
+## Code Signing (ignore for security)
+# *.cer
+# *.mobileprovision
+# !Pods/Target Support Files/*/*.mobileprovision
+.trae
+.claude

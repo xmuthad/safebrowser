@@ -1,0 +1,36 @@
+name: SafeBrowser
+options:
+  bundleIdPrefix: com.safechrome
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_FILE: SafeBrowser/Resources/Info.plist
+    GENERATE_INFOPLIST_FILE: NO
+
+targets:
+  SafeBrowser:
+    type: application
+    platform: iOS
+    sources:
+      - path: SafeBrowser/Sources
+        type: group
+      - path: SafeBrowser/Resources
+        type: group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.safechrome.browser
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: SafeBrowser/Resources/Info.plist
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+        SUPPORTS_MACCATALYST: NO
+        TARGETED_DEVICE_FAMILY: "1"

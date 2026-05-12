@@ -1,0 +1,87 @@
+/* General */
+"app.name" = "SafeBrowser";
+"app.version" = "版本 %@";
+
+/* Navigation */
+"nav.back" = "后退";
+"nav.forward" = "前进";
+"nav.reload" = "刷新";
+"nav.share" = "分享";
+
+/* Address Bar */
+"address.placeholder" = "输入网址或搜索";
+"address.searching" = "搜索中...";
+
+/* Video */
+"video.options" = "视频选项";
+"video.fullscreen" = "全屏播放";
+"video.pip" = "画中画";
+"video.download" = "下载视频";
+"video.openPage" = "打开视频页面";
+"video.noVideo" = "未找到视频";
+"video.noVideoMessage" = "此页面未检测到可播放的视频。请尝试打开YouTube等视频网站。";
+
+/* Download */
+"download.manager" = "下载管理";
+"download.pageVideo" = "下载页面视频";
+"download.currentMedia" = "下载当前媒体";
+"download.viewAll" = "查看下载";
+"download.starting" = "正在开始下载...";
+"download.progress" = "下载中: %d%% (%@ / %@)";
+"download.complete" = "下载完成!";
+"download.failed" = "下载失败";
+"download.cancel" = "取消";
+"download.noDownloads" = "暂无下载";
+"download.count" = "已下载 %d 个视频";
+"download.share" = "分享";
+"download.viewInFiles" = "在文件中查看";
+"download.savedTo" = "视频已保存至:\n%@";
+
+/* Reading Mode */
+"reading.mode" = "阅读模式";
+"reading.noArticle" = "未找到文章";
+"reading.noArticleMessage" = "阅读模式未能找到此页面的文章内容。请尝试打开新闻文章或博客。";
+"reading.preparing" = "正在准备阅读模式...";
+"reading.exit" = "退出阅读模式";
+"reading.theme" = "主题";
+"reading.fontIncrease" = "A+";
+"reading.fontDecrease" = "A-";
+"reading.reset" = "重置";
+"reading.minRead" = "%d 分钟阅读";
+"reading.byAuthor" = "%@ • ";
+
+/* Theme */
+"theme.light" = "浅色";
+"theme.sepia" = "羊皮纸";
+"theme.dark" = "深色";
+
+/* Video Sites */
+"videoSites.title" = "视频网站";
+"videoSites.choose" = "选择要打开的视频平台:";
+"videoSites.youtube" = "YouTube";
+"videoSites.vimeo" = "Vimeo";
+"videoSites.dailymotion" = "Dailymotion";
+
+/* Errors */
+"error.invalidURL" = "无效的网址";
+"error.invalidURLMessage" = "请输入有效的网址。";
+"error.generic" = "错误";
+"error.ok" = "确定";
+"error.cancel" = "取消";
+
+/* Accessibility */
+"accessibility.backButton" = "后退";
+"accessibility.forwardButton" = "前进";
+"accessibility.reloadButton" = "刷新页面";
+"accessibility.videoButton" = "视频选项";
+"accessibility.pipButton" = "画中画";
+"accessibility.downloadButton" = "下载媒体";
+"accessibility.readingModeButton" = "阅读模式";
+"accessibility.shareButton" = "分享页面";
+"accessibility.addressBar" = "地址栏";
+"accessibility.webContent" = "网页内容";
+"accessibility.downloading" = "下载中";
+
+/* Share */
+"share.title" = "分享";
+"share.cancel" = "取消";

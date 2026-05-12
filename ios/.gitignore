@@ -1,0 +1,58 @@
+# iOS
+#
+
+## Xcode User Data
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.moved-aside
+*.xcode.env.local
+
+## Build products
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Swift Package Manager
+Packages
+Package.resolved
+.swiftpm/
+
+## CocoaPods
+# Pods/
+# !Podfile
+# !Podfile.lock
+
+## Code Signing
+*.cer
+*.mobileprovision
+*.entitlements
+!ios/SafeBrowser/Sources/App/*.entitlements
+
+## Archives
+*.zip
+*.tar
+*.gz
+
+## Temporary
+*.tmp
+*.bak
+*.swp
+*~
+
+## Fastlane
+# fastlane/report.xml
+# fastlane/Preview.html
+# fastlane/screenshots
+# fastlane/test_output
+
+## Snapshot
+# .snapshot
+
+## IB
+# *.nib
+# *.xib
