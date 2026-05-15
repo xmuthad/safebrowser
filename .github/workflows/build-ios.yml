@@ -32,9 +32,14 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             VERSION="${{ github.event.inputs.tag }}"
-          else
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            VERSION="build-${GITHUB_REF#refs/heads/}"
+          else
+            VERSION="build-${{ github.run_id }}"
           fi
+          VERSION="${VERSION//\//-}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Build version: $VERSION"
 
