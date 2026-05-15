@@ -32,9 +32,16 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             VERSION="${{ github.event.inputs.tag }}"
-          else
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            VERSION="${BRANCH}-${GITHUB_SHA::7}"
+          else
+            VERSION="build-${GITHUB_SHA::7}"
           fi
+          # Sanitize: replace any character invalid for artifact names with '-'
+          VERSION=$(echo "$VERSION" | tr '/:<>|*?\\"' '-' | tr -d '\r\n')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Build version: $VERSION"
 
