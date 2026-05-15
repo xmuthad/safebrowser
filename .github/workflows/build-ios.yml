@@ -12,10 +12,10 @@ on:
         type: string
 
 env:
-  IOS_VERSION: '17.0'
-  XCODE_VERSION: '16.0'
+  IOS_VERSION: '26.0'
+  XCODE_VERSION: '16.2'
   SCHEME: 'SafeBrowser'
-  SIMULATOR: 'iPhone 15 Pro'
+  SIMULATOR: 'iPhone 17 Pro'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
