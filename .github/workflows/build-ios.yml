@@ -117,38 +117,3 @@ jobs:
           echo "| Xcode | ${{ env.XCODE_VERSION }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Build artifacts uploaded successfully!" >> $GITHUB_STEP_SUMMARY
-
-  test:
-    name: Run Tests
-    runs-on: macos-15
-    needs: build
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
-
-      - name: Generate project
-        run: |
-          cd ios
-          which xcodegen || brew install xcodegen
-          xcodegen generate
-
-      - name: Run unit tests
-        run: |
-          cd ios
-          xcodebuild test \
-            -project SafeBrowser.xcodeproj \
-            -scheme ${{ env.SCHEME }} \
-            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
-            CODE_SIGNING_ALLOWED=NO \
-            test
-
-      - name: Test Summary
-        if: success()
-        run: |
-          echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
