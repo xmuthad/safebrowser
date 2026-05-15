@@ -1,0 +1,68 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build SafeBrowser iOS app"
+  lane :build do
+    ensure_xcode_version(version: "15.0")
+    xcodegen(version: "2.38.0")
+
+    build_app(
+      workspace: nil,
+      project: "SafeBrowser.xcodeproj",
+      scheme: "SafeBrowser",
+      configuration: "Release",
+      clean: true,
+      destination: "generic/platform=iOS Simulator"
+    )
+
+    Dir.glob("DerivedData/Build/Products/Release-iphonesimulator/*.app").each do |app_path|
+      puts "Built app: #{app_path}"
+    end
+  end
+
+  desc "Build for development"
+  lane :build_dev do
+    xcodegen(version: "2.38.0")
+
+    build_app(
+      workspace: nil,
+      project: "SafeBrowser.xcodeproj",
+      scheme: "SafeBrowser",
+      configuration: "Debug",
+      clean: true,
+      destination: "platform=iOS Simulator,name=iPhone 15 Pro"
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    xcodegen(version: "2.38.0")
+
+    run_tests(
+      project: "SafeBrowser.xcodeproj",
+      scheme: "SafeBrowser",
+      destination: "platform=iOS Simulator,name=iPhone 15 Pro"
+    )
+  end
+
+  desc "Build and export IPA"
+  lane :build_ipa do
+    xcodegen(version: "2.38.0")
+
+    build_app(
+      workspace: nil,
+      project: "SafeBrowser.xcodeproj",
+      scheme: "SafeBrowser",
+      configuration: "Release",
+      export_method: "ad-hoc",
+      export_options: {
+        signingMethod: "automatic"
+      }
+    )
+
+    # Copy IPA to root
+    Dir.glob("*.ipa").each do |ipa|
+      FileUtils.cp(ipa, "../SafeBrowser.ipa")
+    end
+  end
+end

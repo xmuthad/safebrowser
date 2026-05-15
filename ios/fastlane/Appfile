@@ -1,0 +1,10 @@
+# Fastlane Appfile for SafeBrowser
+app_identifier("com.safechrome.browser")
+apple_id(ENV["APPLE_ID"] || "")
+
+# Team ID (set via FASTLANE_ITC_TEAM_ID environment variable)
+itc_team_id(ENV["ITC_TEAM_ID"] || "")
+team_id(ENV["TEAM_ID"] || "")
+
+# Development Team (set via DEVELOPMENT_TEAM environment variable)
+# development_team(ENV["DEVELOPMENT_TEAM"] || "")
