@@ -58,6 +58,17 @@ jobs:
           echo "=== Available Simulator Devices ==="
           xcrun simctl list devices available | grep -E "iPhone|iPad" | head -20 || true
 
+      - name: Download iOS Platform (if missing)
+        run: |
+          # Ensure iOS Simulator runtime is available; download if not.
+          if ! xcrun simctl list runtimes available | grep -q "iOS"; then
+            echo "iOS runtime not found, downloading via xcodebuild..."
+            sudo xcodebuild -downloadPlatform iOS -quiet || xcodebuild -downloadPlatform iOS
+          else
+            echo "iOS runtime already available."
+          fi
+          xcrun simctl list runtimes available
+
       - name: Install XcodeGen
         run: |
           cd ios
@@ -147,6 +158,15 @@ jobs:
           cd ios
           which xcodegen || brew install xcodegen
           xcodegen generate
+
+      - name: Download iOS Platform (if missing)
+        run: |
+          if ! xcrun simctl list runtimes available | grep -q "iOS"; then
+            echo "iOS runtime not found, downloading via xcodebuild..."
+            sudo xcodebuild -downloadPlatform iOS -quiet || xcodebuild -downloadPlatform iOS
+          else
+            echo "iOS runtime already available."
+          fi
 
       - name: Pick an available iOS Simulator
         id: pick_sim
