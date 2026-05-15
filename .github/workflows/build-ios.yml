@@ -48,20 +48,11 @@ jobs:
         run: |
           xcodebuild -version
           echo "Available simulators:"
-          xcrun simctl list devices available | grep "iPhone" | head -20
-          # Find first available iPhone simulator using JSON output for clean names
-          SIMULATOR=$(xcrun simctl list devices available --json | \
-            python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for runtime, devices in data.get('devices', {}).items():
-    for d in devices:
-        name = d.get('name', '')
-        if 'iPhone' in name and d.get('isAvailable', True):
-            print(name.strip())
-            sys.exit(0)
-print('iPhone 15')
-" 2>/dev/null || echo "iPhone 15")
+          xcrun simctl list devices available | grep "iPhone"
+          SIMULATOR=$(xcrun simctl list devices available | grep "iPhone" | awk '{print $1" "$2" "$3}' | head -1)
+          if [ -z "$SIMULATOR" ] || ! echo "$SIMULATOR" | grep -q "iPhone"; then
+            SIMULATOR="iPhone 15"
+          fi
           echo "SIMULATOR=$SIMULATOR" >> $GITHUB_OUTPUT
           echo "Using simulator: $SIMULATOR"
 
