@@ -157,7 +157,7 @@ class BrowserViewController: UIViewController {
         )
         readingModeButton.isEnabled = false
 
-        let shareButton = createBarButton(
+        _ = createBarButton(
             systemName: "square.and.arrow.up",
             action: { [weak self] in self?.sharePage() },
             accessibilityLabel: Localized.Accessibility.shareButton,
@@ -1068,7 +1068,7 @@ extension BrowserViewController: WKNavigationDelegate {
         updateSecurityIcon(url: webView.url)
 
         if let url = webView.url {
-            webView.evaluateJavaScript("document.title") { [weak self] result, _ in
+            webView.evaluateJavaScript("document.title") { result, _ in
                 let title = result as? String ?? ""
                 HistoryManager.shared.addEntry(url: url, title: title)
             }
