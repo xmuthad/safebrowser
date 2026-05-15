@@ -14,7 +14,6 @@ on:
 env:
   IOS_VERSION: '26.0'
   XCODE_VERSION: '15.0'
-  PROJECT_DIR: 'ios'
   SCHEME: 'SafeBrowser'
   SIMULATOR: 'iPhone 15 Pro'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -51,19 +50,20 @@ jobs:
 
       - name: Install XcodeGen
         run: |
+          cd ios
           which xcodegen || brew install xcodegen
           xcodegen --version
 
       - name: Generate Xcode project
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          cd ios
           xcodegen generate
           ls -la *.xcodeproj
 
       - name: Build iOS project (Debug)
-        working-directory: ${{ env.PROJECT_DIR }}
         id: build_debug
         run: |
+          cd ios
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Debug \
@@ -73,9 +73,9 @@ jobs:
             build
 
       - name: Build iOS project (Release)
-        working-directory: ${{ env.PROJECT_DIR }}
         id: build_release
         run: |
+          cd ios
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Release \
@@ -85,8 +85,8 @@ jobs:
             build
 
       - name: List build artifacts
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          cd ios
           echo "=== Build Artifacts ==="
           if [ -d "./DerivedData/Build/Products" ]; then
             ls -la ./DerivedData/Build/Products/
@@ -97,14 +97,11 @@ jobs:
           fi
 
       - name: Upload build artifacts
-        working-directory: ${{ env.PROJECT_DIR }}
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: SafeBrowser-build-${{ steps.get_tag.outputs.VERSION }}
-          path: |
-            ./DerivedData/Build/Products/Release-iphonesimulator/*.app
-            ./DerivedData/Build/Products/Debug-iphonesimulator/*.app
+          path: ios/DerivedData/Build/Products/
           retention-days: 14
 
       - name: Build Summary
@@ -136,14 +133,14 @@ jobs:
           xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Generate project
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          cd ios
           which xcodegen || brew install xcodegen
           xcodegen generate
 
       - name: Run unit tests
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          cd ios
           xcodebuild test \
             -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
