@@ -49,12 +49,17 @@ jobs:
           xcodebuild -version
           echo "Available simulators:"
           xcrun simctl list devices available | grep "iPhone"
-          SIMULATOR=$(xcrun simctl list devices available | grep "iPhone" | awk '{print $1" "$2" "$3}' | head -1)
-          if [ -z "$SIMULATOR" ] || ! echo "$SIMULATOR" | grep -q "iPhone"; then
-            SIMULATOR="iPhone 15"
+          # Extract simulator name and ID using awk
+          SIMULATOR_INFO=$(xcrun simctl list devices available | grep "iPhone" | head -1)
+          SIMULATOR_NAME=$(echo "$SIMULATOR_INFO" | awk '{print $1" "$2" "$3}')
+          SIMULATOR_ID=$(echo "$SIMULATOR_INFO" | awk -F'(' '{print $2}' | awk -F')' '{print $1}')
+          if [ -z "$SIMULATOR_NAME" ] || ! echo "$SIMULATOR_NAME" | grep -q "iPhone"; then
+            SIMULATOR_NAME="iPhone 15"
+            SIMULATOR_ID=""
           fi
-          echo "SIMULATOR=$SIMULATOR" >> $GITHUB_OUTPUT
-          echo "Using simulator: $SIMULATOR"
+          echo "SIMULATOR_NAME=$SIMULATOR_NAME" >> $GITHUB_OUTPUT
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> $GITHUB_OUTPUT
+          echo "Using simulator: $SIMULATOR_NAME (ID: $SIMULATOR_ID)"
 
       - name: Install XcodeGen
         run: |
@@ -72,10 +77,15 @@ jobs:
         id: build_debug
         run: |
           cd ios
+          if [ -n "${{ steps.find_sim.outputs.SIMULATOR_ID }}" ]; then
+            DESTINATION="id=${{ steps.find_sim.outputs.SIMULATOR_ID }}"
+          else
+            DESTINATION="platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR_NAME }}"
+          fi
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR }}" \
+            -destination "$DESTINATION" \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -84,10 +94,15 @@ jobs:
         id: build_release
         run: |
           cd ios
+          if [ -n "${{ steps.find_sim.outputs.SIMULATOR_ID }}" ]; then
+            DESTINATION="id=${{ steps.find_sim.outputs.SIMULATOR_ID }}"
+          else
+            DESTINATION="platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR_NAME }}"
+          fi
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Release \
-            -destination "platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR }}" \
+            -destination "$DESTINATION" \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
