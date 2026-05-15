@@ -12,16 +12,16 @@ on:
         type: string
 
 env:
-  IOS_VERSION: '26.0'
-  XCODE_VERSION: '26.0'
+  IOS_VERSION: '17.0'
+  XCODE_VERSION: '15.0'
   SCHEME: 'SafeBrowser'
-  SIMULATOR: 'iPhone 16 Pro'
+  SIMULATOR: 'iPhone 15 Pro'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
     name: Build SafeBrowser
-    runs-on: macos-26
+    runs-on: macos-14
 
     steps:
       - name: Checkout code
@@ -32,16 +32,9 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             VERSION="${{ github.event.inputs.tag }}"
-          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-          elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
-            BRANCH="${GITHUB_REF#refs/heads/}"
-            VERSION="${BRANCH}-${GITHUB_SHA::7}"
           else
-            VERSION="build-${GITHUB_SHA::7}"
+            VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          # Sanitize: replace any character invalid for artifact names with '-'
-          VERSION=$(echo "$VERSION" | tr '/:<>|*?\\"' '-' | tr -d '\r\n')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Build version: $VERSION"
 
@@ -53,30 +46,7 @@ jobs:
       - name: Verify Xcode
         run: |
           xcodebuild -version
-          echo "=== Available Simulator Runtimes ==="
-          xcrun simctl list runtimes available || true
-          echo "=== Available Simulator Devices ==="
-          xcrun simctl list devices available | grep -E "iPhone|iPad" | head -20 || true
-
-      - name: Download iOS Platform (if missing)
-        run: |
-          # Ensure iOS Simulator runtime is available; download if not.
-          # simctl output uses lines starting with 'iOS ' (e.g. 'iOS 26.0 (26.0.1 - ...)'),
-          # NOT the literal string 'iOS Simulator'. Match line-start to avoid hitting tvOS/watchOS/visionOS.
-          if ! xcrun simctl list runtimes available | grep -qE "^iOS "; then
-            echo "iOS Simulator runtime not found, downloading via xcodebuild..."
-            # Do NOT use -quiet so we can see real failure if any.
-            sudo xcodebuild -downloadPlatform iOS || xcodebuild -downloadPlatform iOS
-          else
-            echo "iOS Simulator runtime already available."
-          fi
-          echo "=== Final available runtimes ==="
-          xcrun simctl list runtimes available
-          # Hard fail if still missing so we surface the issue early.
-          xcrun simctl list runtimes available | grep -qE "^iOS " || {
-            echo "::error::iOS Simulator runtime is still missing after download attempt"
-            exit 1
-          }
+          xcrun simctl list devices available | grep -E "iPhone|iPad" | head -5
 
       - name: Install XcodeGen
         run: |
@@ -97,7 +67,7 @@ jobs:
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -109,7 +79,7 @@ jobs:
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Release \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -150,7 +120,7 @@ jobs:
 
   test:
     name: Run Tests
-    runs-on: macos-26
+    runs-on: macos-14
     needs: build
 
     steps:
@@ -168,40 +138,13 @@ jobs:
           which xcodegen || brew install xcodegen
           xcodegen generate
 
-      - name: Download iOS Platform (if missing)
-        run: |
-          if ! xcrun simctl list runtimes available | grep -qE "^iOS "; then
-            echo "iOS Simulator runtime not found, downloading via xcodebuild..."
-            sudo xcodebuild -downloadPlatform iOS || xcodebuild -downloadPlatform iOS
-          else
-            echo "iOS Simulator runtime already available."
-          fi
-          xcrun simctl list runtimes available
-          xcrun simctl list runtimes available | grep -qE "^iOS " || {
-            echo "::error::iOS Simulator runtime is still missing after download attempt"
-            exit 1
-          }
-
-      - name: Pick an available iOS Simulator
-        id: pick_sim
-        run: |
-          # Pick the first available iPhone simulator (any iOS runtime installed on the runner)
-          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone" | grep -v "unavailable" | head -1 | sed -E 's/^[[:space:]]*([^(]+) \(.*$/\1/' | sed 's/[[:space:]]*$//')
-          if [ -z "$DEVICE" ]; then
-            echo "No available iPhone simulator found"
-            xcrun simctl list devices available
-            exit 1
-          fi
-          echo "Selected simulator: $DEVICE"
-          echo "DEVICE=$DEVICE" >> $GITHUB_OUTPUT
-
       - name: Run unit tests
         run: |
           cd ios
           xcodebuild test \
             -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
-            -destination "platform=iOS Simulator,name=${{ steps.pick_sim.outputs.DEVICE }}" \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             CODE_SIGNING_ALLOWED=NO \
             test
 
