@@ -17,6 +17,7 @@ env:
   PROJECT_DIR: 'ios'
   SCHEME: 'SafeBrowser'
   SIMULATOR: 'iPhone 15 Pro'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
