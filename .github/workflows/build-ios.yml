@@ -12,16 +12,16 @@ on:
         type: string
 
 env:
-  IOS_VERSION: '18.0'
+  IOS_VERSION: '17.0'
   XCODE_VERSION: '16.0'
   SCHEME: 'SafeBrowser'
-  SIMULATOR: 'iPhone 16 Pro'
+  SIMULATOR: 'iPhone 15 Pro'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
     name: Build SafeBrowser
-    runs-on: macos-15
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
