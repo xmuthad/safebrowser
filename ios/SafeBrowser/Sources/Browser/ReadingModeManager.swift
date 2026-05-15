@@ -481,12 +481,45 @@ class ReadingModeManager: NSObject {
     }
 
     private func escapeHTML(_ string: String) -> String {
-        return string
+        var escaped = string
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&#39;")
+
+        escaped = removeDangerousPatterns(escaped)
+        return escaped
+    }
+
+    private func removeDangerousPatterns(_ string: String) -> String {
+        var result = string
+
+        let dangerousPatterns = [
+            "javascript:",
+            "onerror=",
+            "onclick=",
+            "onload=",
+            "onmouseover=",
+            "onfocus=",
+            "onblur=",
+            "expression\\(",
+            "url\\(",
+            "data:text/html"
+        ]
+
+        for pattern in dangerousPatterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    options: [],
+                    range: NSRange(result.startIndex..., in: result),
+                    withTemplate: ""
+                )
+            }
+        }
+
+        return result
     }
 }
 

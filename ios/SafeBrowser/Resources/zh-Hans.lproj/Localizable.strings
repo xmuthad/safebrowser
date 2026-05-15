@@ -25,6 +25,27 @@
 "security.blockingFooter" = "在浏览时保护您的隐私和安全";
 "security.privacyFooter" = "管理您的隐私和数据";
 
+/* Performance */
+"performance.title" = "性能";
+"performance.currentStatus" = "当前状态";
+"performance.actions" = "操作";
+"performance.tips" = "提示";
+"performance.memoryUsage" = "内存使用";
+"performance.avgLoadTime" = "平均加载时间";
+"performance.status" = "状态";
+"performance.statusGood" = "已优化";
+"performance.statusPoor" = "需要优化";
+"performance.clearCaches" = "清除缓存";
+"performance.clearCachesMessage" = "这将清除所有缓存数据。";
+"performance.cleared" = "缓存已清除";
+"performance.clearedMessage" = "所有缓存已成功清除。";
+"performance.resetStats" = "重置统计";
+"performance.resetStatsMessage" = "这将重置所有性能统计数据。";
+"performance.reset" = "重置";
+"performance.clearOptions" = "清除选项";
+"performance.actionsFooter" = "清除缓存和重置统计以提升性能";
+"performance.tip1" = "💡 提示：定期清除缓存可以帮助提升浏览性能。";
+
 /* Navigation */
 "nav.back" = "后退";
 "nav.forward" = "前进";
@@ -85,22 +106,80 @@
 "videoSites.vimeo" = "Vimeo";
 "videoSites.dailymotion" = "Dailymotion";
 
+/* Menu */
+"menu.download" = "下载视频";
+"menu.downloadList" = "下载列表";
+"menu.history" = "历史记录";
+"menu.readingMode" = "阅读模式";
+"menu.share" = "分享";
+"menu.bookmarks" = "书签";
+"menu.addBookmark" = "添加书签";
+"menu.findInPage" = "页面内搜索";
+"menu.desktopSite" = "请求桌面版网站";
+"menu.desktopSiteOn" = "已切换到桌面版";
+"menu.desktopSiteOff" = "已切换到移动版";
+"menu.backHistory" = "后退历史";
+"menu.forwardHistory" = "前进历史";
+"menu.addCurrentPage" = "收藏当前页面";
+
+/* Bookmark */
+"bookmark.title" = "书签";
+"bookmark.empty" = "暂无书签";
+"bookmark.searchPlaceholder" = "搜索书签";
+"bookmark.added" = "书签已添加";
+"bookmark.removed" = "书签已移除";
+
+/* Find in Page */
+"findInPage.title" = "页面内搜索";
+"findInPage.placeholder" = "输入搜索文本";
+"findInPage.search" = "搜索";
+
+/* History */
+"history.title" = "历史记录";
+"history.empty" = "没有浏览历史";
+"history.clear" = "清除";
+"history.clearConfirm" = "清除历史记录";
+"history.clearConfirmMessage" = "确定要清除所有浏览历史吗？此操作无法撤销。";
+"history.searchPlaceholder" = "搜索历史记录";
+"history.today" = "今天";
+"history.yesterday" = "昨天";
+"history.thisWeek" = "本周";
+"history.earlier" = "更早";
+
 /* Errors */
 "error.invalidURL" = "无效的网址";
 "error.invalidURLMessage" = "请输入有效的网址。";
 "error.generic" = "错误";
 "error.ok" = "确定";
 "error.cancel" = "取消";
+"error.blocked" = "网站被拦截";
+"error.blockedMessage" = "此网站已被拦截以保护您的安全。";
 
 /* Accessibility */
 "accessibility.backButton" = "后退";
+"accessibility.backHint" = "双击返回";
 "accessibility.forwardButton" = "前进";
+"accessibility.forwardHint" = "双击前进";
 "accessibility.reloadButton" = "刷新页面";
+"accessibility.reloadHint" = "双击刷新页面";
 "accessibility.videoButton" = "视频选项";
+"accessibility.videoHint" = "双击打开视频选项";
 "accessibility.pipButton" = "画中画";
+"accessibility.pipHint" = "双击切换画中画";
 "accessibility.downloadButton" = "下载媒体";
+"accessibility.downloadHint" = "双击打开下载管理器";
 "accessibility.readingModeButton" = "阅读模式";
+"accessibility.readingModeHint" = "双击切换阅读模式";
 "accessibility.shareButton" = "分享页面";
+"accessibility.shareHint" = "双击分享此页面";
+"accessibility.moreButton" = "更多选项";
+"accessibility.moreHint" = "双击打开更多选项";
+"accessibility.homeButton" = "主页";
+"accessibility.homeHint" = "双击返回主页";
+"accessibility.downloadsListButton" = "下载列表";
+"accessibility.downloadsListHint" = "双击查看所有下载";
+"accessibility.historyButton" = "历史记录";
+"accessibility.historyHint" = "双击查看浏览历史";
 "accessibility.securityButton" = "安全设置";
 "accessibility.addressBar" = "地址栏";
 "accessibility.webContent" = "网页内容";

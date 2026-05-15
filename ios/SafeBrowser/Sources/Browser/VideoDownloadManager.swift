@@ -34,13 +34,15 @@ class VideoDownloadManager: NSObject {
     private var activeDownloads: [Int: URL] = [:]
     private var downloadProgress: [Int: Float] = [:]
     private var downloadCompletion: [Int: (DownloadResult) -> Void] = [:]
-    private let downloadQueue = DispatchQueue(label: "com.safechrome.downloadQueue", qos: .userInitiated)
+    private let downloadQueue = OperationQueue()
 
     private override init() {
         super.init()
         let config = URLSessionConfiguration.background(withIdentifier: downloadSessionIdentifier)
         config.isDiscretionary = false
         config.sessionSendsLaunchEvents = true
+        downloadQueue.maxConcurrentOperationCount = 1
+        downloadQueue.qualityOfService = .userInitiated
         downloadSession = URLSession(configuration: config, delegate: self, delegateQueue: downloadQueue)
         logger.info("Download manager initialized")
     }
@@ -172,8 +174,9 @@ extension VideoDownloadManager: URLSessionDownloadDelegate {
         }
 
         let downloadsPath = getDownloadsDirectory()
-        let sanitizedFileName = sanitizeFileName(originalURL.lastPathComponent)
-        let destinationURL = downloadsPath.appendingPathComponent(sanitizedFileName)
+        let originalFileName = sanitizeFileName(originalURL.lastPathComponent)
+        let uniqueFileName = generateUniqueFileName(for: originalFileName, in: downloadsPath)
+        let destinationURL = downloadsPath.appendingPathComponent(uniqueFileName)
 
         do {
             if FileManager.default.fileExists(atPath: destinationURL.path) {
@@ -181,7 +184,7 @@ extension VideoDownloadManager: URLSessionDownloadDelegate {
             }
             try FileManager.default.moveItem(at: location, to: destinationURL)
 
-            logger.info("Download completed: \(sanitizedFileName)")
+            logger.info("Download completed: \(uniqueFileName)")
             downloadCompletion[downloadTask.taskIdentifier]?(.success(destinationURL))
 
             DispatchQueue.main.async {
@@ -255,5 +258,22 @@ extension VideoDownloadManager: URLSessionDownloadDelegate {
         }
 
         return sanitized
+    }
+
+    private func generateUniqueFileName(for originalFileName: String, in directory: URL) -> String {
+        let sanitizedName = sanitizeFileName(originalFileName)
+        let baseName = (sanitizedName as NSString).deletingPathExtension
+        let fileExtension = (sanitizedName as NSString).pathExtension
+
+        var finalPath = directory.appendingPathComponent(sanitizedName)
+        var counter = 1
+
+        while FileManager.default.fileExists(atPath: finalPath.path) {
+            let newFileName = "\(baseName)_\(counter).\(fileExtension)"
+            finalPath = directory.appendingPathComponent(newFileName)
+            counter += 1
+        }
+
+        return finalPath.lastPathComponent
     }
 }

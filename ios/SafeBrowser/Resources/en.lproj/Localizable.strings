@@ -25,6 +25,27 @@
 "security.blockingFooter" = "Protect your privacy and security while browsing";
 "security.privacyFooter" = "Manage your privacy and data";
 
+/* Performance */
+"performance.title" = "Performance";
+"performance.currentStatus" = "Current Status";
+"performance.actions" = "Actions";
+"performance.tips" = "Tips";
+"performance.memoryUsage" = "Memory Usage";
+"performance.avgLoadTime" = "Average Load Time";
+"performance.status" = "Status";
+"performance.statusGood" = "Optimized";
+"performance.statusPoor" = "Needs Attention";
+"performance.clearCaches" = "Clear Caches";
+"performance.clearCachesMessage" = "This will clear all cached data.";
+"performance.cleared" = "Caches Cleared";
+"performance.clearedMessage" = "All caches have been cleared successfully.";
+"performance.resetStats" = "Reset Statistics";
+"performance.resetStatsMessage" = "This will reset all performance statistics.";
+"performance.reset" = "Reset";
+"performance.clearOptions" = "Clear Options";
+"performance.actionsFooter" = "Clear caches and reset statistics to improve performance";
+"performance.tip1" = "💡 Tip: Regularly clearing caches can help improve browsing performance.";
+
 /* Navigation */
 "nav.back" = "Back";
 "nav.forward" = "Forward";
@@ -85,22 +106,80 @@
 "videoSites.vimeo" = "Vimeo";
 "videoSites.dailymotion" = "Dailymotion";
 
+/* Menu */
+"menu.download" = "Download Video";
+"menu.downloadList" = "Download List";
+"menu.history" = "History";
+"menu.readingMode" = "Reading Mode";
+"menu.share" = "Share";
+"menu.bookmarks" = "Bookmarks";
+"menu.addBookmark" = "Add to Bookmarks";
+"menu.findInPage" = "Find in Page";
+"menu.desktopSite" = "Request Desktop Site";
+"menu.desktopSiteOn" = "Desktop site enabled";
+"menu.desktopSiteOff" = "Mobile site enabled";
+"menu.backHistory" = "Back History";
+"menu.forwardHistory" = "Forward History";
+"menu.addCurrentPage" = "Bookmark Current Page";
+
+/* Bookmark */
+"bookmark.title" = "Bookmarks";
+"bookmark.empty" = "No bookmarks";
+"bookmark.searchPlaceholder" = "Search bookmarks";
+"bookmark.added" = "Bookmark added";
+"bookmark.removed" = "Bookmark removed";
+
+/* Find in Page */
+"findInPage.title" = "Find in Page";
+"findInPage.placeholder" = "Enter search text";
+"findInPage.search" = "Search";
+
+/* History */
+"history.title" = "History";
+"history.empty" = "No browsing history";
+"history.clear" = "Clear";
+"history.clearConfirm" = "Clear History";
+"history.clearConfirmMessage" = "Are you sure you want to clear all browsing history? This cannot be undone.";
+"history.searchPlaceholder" = "Search history";
+"history.today" = "Today";
+"history.yesterday" = "Yesterday";
+"history.thisWeek" = "This Week";
+"history.earlier" = "Earlier";
+
 /* Errors */
 "error.invalidURL" = "Invalid URL";
 "error.invalidURLMessage" = "Please enter a valid web address.";
 "error.generic" = "Error";
 "error.ok" = "OK";
 "error.cancel" = "Cancel";
+"error.blocked" = "Site Blocked";
+"error.blockedMessage" = "This site has been blocked for your security.";
 
 /* Accessibility */
 "accessibility.backButton" = "Go Back";
+"accessibility.backHint" = "Double tap to go back";
 "accessibility.forwardButton" = "Go Forward";
+"accessibility.forwardHint" = "Double tap to go forward";
 "accessibility.reloadButton" = "Reload Page";
+"accessibility.reloadHint" = "Double tap to reload page";
 "accessibility.videoButton" = "Video Options";
+"accessibility.videoHint" = "Double tap to open video options";
 "accessibility.pipButton" = "Picture in Picture";
+"accessibility.pipHint" = "Double tap to toggle picture in picture";
 "accessibility.downloadButton" = "Download Media";
+"accessibility.downloadHint" = "Double tap to open download manager";
 "accessibility.readingModeButton" = "Reading Mode";
+"accessibility.readingModeHint" = "Double tap to toggle reading mode";
 "accessibility.shareButton" = "Share Page";
+"accessibility.shareHint" = "Double tap to share this page";
+"accessibility.moreButton" = "More Options";
+"accessibility.moreHint" = "Double tap to open more options";
+"accessibility.homeButton" = "Home";
+"accessibility.homeHint" = "Double tap to go to home page";
+"accessibility.downloadsListButton" = "Downloads";
+"accessibility.downloadsListHint" = "Double tap to view all downloads";
+"accessibility.historyButton" = "History";
+"accessibility.historyHint" = "Double tap to view browsing history";
 "accessibility.securityButton" = "Security Settings";
 "accessibility.addressBar" = "Address Bar";
 "accessibility.webContent" = "Web Content";

@@ -105,24 +105,86 @@ enum Localized {
         static var generic: String { NSLocalizedString("error.generic", comment: "") }
         static var ok: String { NSLocalizedString("error.ok", comment: "") }
         static var cancel: String { NSLocalizedString("error.cancel", comment: "") }
+        static var blocked: String { NSLocalizedString("error.blocked", comment: "") }
+        static var blockedMessage: String { NSLocalizedString("error.blockedMessage", comment: "") }
     }
 
     enum Accessibility {
         static var backButton: String { NSLocalizedString("accessibility.backButton", comment: "") }
+        static var backHint: String { NSLocalizedString("accessibility.backHint", comment: "") }
         static var forwardButton: String { NSLocalizedString("accessibility.forwardButton", comment: "") }
+        static var forwardHint: String { NSLocalizedString("accessibility.forwardHint", comment: "") }
         static var reloadButton: String { NSLocalizedString("accessibility.reloadButton", comment: "") }
+        static var reloadHint: String { NSLocalizedString("accessibility.reloadHint", comment: "") }
         static var videoButton: String { NSLocalizedString("accessibility.videoButton", comment: "") }
+        static var videoHint: String { NSLocalizedString("accessibility.videoHint", comment: "") }
         static var pipButton: String { NSLocalizedString("accessibility.pipButton", comment: "") }
+        static var pipHint: String { NSLocalizedString("accessibility.pipHint", comment: "") }
         static var downloadButton: String { NSLocalizedString("accessibility.downloadButton", comment: "") }
+        static var downloadHint: String { NSLocalizedString("accessibility.downloadHint", comment: "") }
         static var readingModeButton: String { NSLocalizedString("accessibility.readingModeButton", comment: "") }
+        static var readingModeHint: String { NSLocalizedString("accessibility.readingModeHint", comment: "") }
         static var shareButton: String { NSLocalizedString("accessibility.shareButton", comment: "") }
+        static var shareHint: String { NSLocalizedString("accessibility.shareHint", comment: "") }
+        static var moreButton: String { NSLocalizedString("accessibility.moreButton", comment: "") }
+        static var moreHint: String { NSLocalizedString("accessibility.moreHint", comment: "") }
+        static var homeButton: String { NSLocalizedString("accessibility.homeButton", comment: "") }
+        static var homeHint: String { NSLocalizedString("accessibility.homeHint", comment: "") }
         static var addressBar: String { NSLocalizedString("accessibility.addressBar", comment: "") }
         static var webContent: String { NSLocalizedString("accessibility.webContent", comment: "") }
         static var downloading: String { NSLocalizedString("accessibility.downloading", comment: "") }
+        static var downloadsListButton: String { NSLocalizedString("accessibility.downloadsListButton", comment: "") }
+        static var downloadsListHint: String { NSLocalizedString("accessibility.downloadsListHint", comment: "") }
+        static var historyButton: String { NSLocalizedString("accessibility.historyButton", comment: "") }
+        static var historyHint: String { NSLocalizedString("accessibility.historyHint", comment: "") }
     }
 
     enum Share {
         static var title: String { NSLocalizedString("share.title", comment: "") }
         static var cancel: String { NSLocalizedString("share.cancel", comment: "") }
+    }
+
+    enum Menu {
+        static var download: String { NSLocalizedString("menu.download", comment: "") }
+        static var downloadList: String { NSLocalizedString("menu.downloadList", comment: "") }
+        static var history: String { NSLocalizedString("menu.history", comment: "") }
+        static var readingMode: String { NSLocalizedString("menu.readingMode", comment: "") }
+        static var share: String { NSLocalizedString("menu.share", comment: "") }
+        static var bookmarks: String { NSLocalizedString("menu.bookmarks", comment: "") }
+        static var addBookmark: String { NSLocalizedString("menu.addBookmark", comment: "") }
+        static var findInPage: String { NSLocalizedString("menu.findInPage", comment: "") }
+        static var desktopSite: String { NSLocalizedString("menu.desktopSite", comment: "") }
+        static var desktopSiteOn: String { NSLocalizedString("menu.desktopSiteOn", comment: "") }
+        static var desktopSiteOff: String { NSLocalizedString("menu.desktopSiteOff", comment: "") }
+        static var backHistory: String { NSLocalizedString("menu.backHistory", comment: "") }
+        static var forwardHistory: String { NSLocalizedString("menu.forwardHistory", comment: "") }
+        static var addCurrentPage: String { NSLocalizedString("menu.addCurrentPage", comment: "") }
+    }
+
+    enum Bookmark {
+        static var title: String { NSLocalizedString("bookmark.title", comment: "") }
+        static var empty: String { NSLocalizedString("bookmark.empty", comment: "") }
+        static var searchPlaceholder: String { NSLocalizedString("bookmark.searchPlaceholder", comment: "") }
+        static var added: String { NSLocalizedString("bookmark.added", comment: "") }
+        static var removed: String { NSLocalizedString("bookmark.removed", comment: "") }
+    }
+
+    enum FindInPage {
+        static var title: String { NSLocalizedString("findInPage.title", comment: "") }
+        static var placeholder: String { NSLocalizedString("findInPage.placeholder", comment: "") }
+        static var search: String { NSLocalizedString("findInPage.search", comment: "") }
+    }
+
+    enum History {
+        static var title: String { NSLocalizedString("history.title", comment: "") }
+        static var empty: String { NSLocalizedString("history.empty", comment: "") }
+        static var clear: String { NSLocalizedString("history.clear", comment: "") }
+        static var clearConfirm: String { NSLocalizedString("history.clearConfirm", comment: "") }
+        static var clearConfirmMessage: String { NSLocalizedString("history.clearConfirmMessage", comment: "") }
+        static var searchPlaceholder: String { NSLocalizedString("history.searchPlaceholder", comment: "") }
+        static var today: String { NSLocalizedString("history.today", comment: "") }
+        static var yesterday: String { NSLocalizedString("history.yesterday", comment: "") }
+        static var thisWeek: String { NSLocalizedString("history.thisWeek", comment: "") }
+        static var earlier: String { NSLocalizedString("history.earlier", comment: "") }
     }
 }
