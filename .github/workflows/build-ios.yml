@@ -61,13 +61,20 @@ jobs:
       - name: Download iOS Platform (if missing)
         run: |
           # Ensure iOS Simulator runtime is available; download if not.
-          if ! xcrun simctl list runtimes available | grep -q "iOS"; then
-            echo "iOS runtime not found, downloading via xcodebuild..."
-            sudo xcodebuild -downloadPlatform iOS -quiet || xcodebuild -downloadPlatform iOS
+          if ! xcrun simctl list runtimes available | grep -q "iOS Simulator"; then
+            echo "iOS Simulator runtime not found, downloading via xcodebuild..."
+            # Do NOT use -quiet so we can see real failure if any.
+            sudo xcodebuild -downloadPlatform iOS || xcodebuild -downloadPlatform iOS
           else
-            echo "iOS runtime already available."
+            echo "iOS Simulator runtime already available."
           fi
+          echo "=== Final available runtimes ==="
           xcrun simctl list runtimes available
+          # Hard fail if still missing so we surface the issue early.
+          xcrun simctl list runtimes available | grep -q "iOS Simulator" || {
+            echo "::error::iOS Simulator runtime is still missing after download attempt"
+            exit 1
+          }
 
       - name: Install XcodeGen
         run: |
@@ -161,12 +168,17 @@ jobs:
 
       - name: Download iOS Platform (if missing)
         run: |
-          if ! xcrun simctl list runtimes available | grep -q "iOS"; then
-            echo "iOS runtime not found, downloading via xcodebuild..."
-            sudo xcodebuild -downloadPlatform iOS -quiet || xcodebuild -downloadPlatform iOS
+          if ! xcrun simctl list runtimes available | grep -q "iOS Simulator"; then
+            echo "iOS Simulator runtime not found, downloading via xcodebuild..."
+            sudo xcodebuild -downloadPlatform iOS || xcodebuild -downloadPlatform iOS
           else
-            echo "iOS runtime already available."
+            echo "iOS Simulator runtime already available."
           fi
+          xcrun simctl list runtimes available
+          xcrun simctl list runtimes available | grep -q "iOS Simulator" || {
+            echo "::error::iOS Simulator runtime is still missing after download attempt"
+            exit 1
+          }
 
       - name: Pick an available iOS Simulator
         id: pick_sim
