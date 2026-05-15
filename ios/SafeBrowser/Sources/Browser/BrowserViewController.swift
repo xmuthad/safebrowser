@@ -25,6 +25,8 @@ private enum LayoutConstant {
     static let maxURLLength = 2048
 }
 
+/// Main browser view controller providing web browsing functionality
+/// Features: URL navigation, video playback, downloads, reading mode, bookmarks, history
 class BrowserViewController: UIViewController {
 
     private let logger = Logger(subsystem: "com.safechrome.browser", category: "browser")
@@ -36,36 +38,47 @@ class BrowserViewController: UIViewController {
     private var backButton: UIBarButtonItem!
     private var forwardButton: UIBarButtonItem!
     private var refreshButton: UIBarButtonItem!
+    private var homeButton: UIBarButtonItem!
     private var videoButton: UIBarButtonItem!
     private var pictureInPictureButton: UIBarButtonItem!
     private var downloadButton: UIBarButtonItem!
+    private var downloadsListButton: UIBarButtonItem!
+    private var historyButton: UIBarButtonItem!
     private var readingModeButton: UIBarButtonItem!
+    private var moreButton: UIBarButtonItem!
+    private var securityIcon: UIImageView!
+    private var addressBarContainer: UIView!
 
     private var progressObservation: NSKeyValueObservation?
-    private var mediaPlaybackObservation: NSKeyValueObservation?
+
     private var currentVideoView: AVPlayerViewController?
     private var isVideoPlaying = false
-
     private var downloadProgressView: UIProgressView?
     private var downloadStatusLabel: UILabel?
     private var currentDownloadTaskId: Int?
 
+    private var isReadingModeActive = false
+    private var readerWebView: WKWebView?
+
     deinit {
         logger.info("BrowserViewController deinit - cleaning up")
-        progressObservation?.invalidate()
-        mediaPlaybackObservation?.invalidate()
-        NotificationCenter.default.removeObserver(self)
-        VideoDownloadManager.shared.cancelAllDownloads()
+        cleanup()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         logger.info("BrowserViewController viewDidLoad")
+        
+        // 确保视图有正确的背景色和层级
+        view.backgroundColor = .systemBackground
+        
         setupUI()
         setupWebView()
         setupConstraints()
         loadHomePage()
         setupNotifications()
+        
+        logger.info("BrowserViewController setup complete")
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -74,7 +87,7 @@ class BrowserViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        // setupUI 不再设置背景色，已在 viewDidLoad 中设置
         setupToolbar()
     }
 
@@ -85,106 +98,230 @@ class BrowserViewController: UIViewController {
 
         backButton = createBarButton(
             systemName: "chevron.left",
-            action: #selector(goBack),
-            accessibilityLabel: "Go Back"
+            action: { [weak self] in self?.goBack() },
+            accessibilityLabel: Localized.Accessibility.backButton,
+            accessibilityHint: Localized.Accessibility.backHint
         )
         backButton.isEnabled = false
 
         forwardButton = createBarButton(
             systemName: "chevron.right",
-            action: #selector(goForward),
-            accessibilityLabel: "Go Forward"
+            action: { [weak self] in self?.goForward() },
+            accessibilityLabel: Localized.Accessibility.forwardButton,
+            accessibilityHint: Localized.Accessibility.forwardHint
         )
         forwardButton.isEnabled = false
 
         refreshButton = createBarButton(
             systemName: "arrow.clockwise",
-            action: #selector(reload),
-            accessibilityLabel: "Reload Page"
+            action: { [weak self] in self?.reload() },
+            accessibilityLabel: Localized.Accessibility.reloadButton,
+            accessibilityHint: Localized.Accessibility.reloadHint
+        )
+
+        homeButton = createBarButton(
+            systemName: "house",
+            action: { [weak self] in self?.goHome() },
+            accessibilityLabel: Localized.Accessibility.homeButton,
+            accessibilityHint: Localized.Accessibility.homeHint
         )
 
         videoButton = createBarButton(
             systemName: "play.rectangle",
-            action: #selector(showVideoOptions),
-            accessibilityLabel: "Video Options"
+            action: { [weak self] in self?.showVideoOptions() },
+            accessibilityLabel: Localized.Accessibility.videoButton,
+            accessibilityHint: Localized.Accessibility.videoHint
         )
         videoButton.isEnabled = false
 
         pictureInPictureButton = createBarButton(
             systemName: "pip.enter",
-            action: #selector(togglePictureInPicture),
-            accessibilityLabel: "Picture in Picture"
+            action: { [weak self] in self?.togglePictureInPicture() },
+            accessibilityLabel: Localized.Accessibility.pipButton,
+            accessibilityHint: Localized.Accessibility.pipHint
         )
         pictureInPictureButton.isEnabled = false
 
         downloadButton = createBarButton(
             systemName: "arrow.down.to.line",
-            action: #selector(showDownloadOptions),
-            accessibilityLabel: "Download Media"
+            action: { [weak self] in self?.showDownloadOptions() },
+            accessibilityLabel: Localized.Accessibility.downloadButton,
+            accessibilityHint: Localized.Accessibility.downloadHint
         )
-        downloadButton.isEnabled = false
 
         readingModeButton = createBarButton(
             systemName: "doc.text",
-            action: #selector(toggleReadingMode),
-            accessibilityLabel: "Reading Mode"
+            action: { [weak self] in self?.toggleReadingMode() },
+            accessibilityLabel: Localized.Accessibility.readingModeButton,
+            accessibilityHint: Localized.Accessibility.readingModeHint
         )
         readingModeButton.isEnabled = false
 
         let shareButton = createBarButton(
             systemName: "square.and.arrow.up",
-            action: #selector(sharePage),
-            accessibilityLabel: "Share Page"
+            action: { [weak self] in self?.sharePage() },
+            accessibilityLabel: Localized.Accessibility.shareButton,
+            accessibilityHint: Localized.Accessibility.shareHint
+        )
+
+        downloadsListButton = createBarButton(
+            systemName: "folder",
+            action: { [weak self] in self?.showAllDownloads() },
+            accessibilityLabel: Localized.Accessibility.downloadsListButton,
+            accessibilityHint: Localized.Accessibility.downloadsListHint
+        )
+
+        historyButton = createBarButton(
+            systemName: "clock",
+            action: { [weak self] in self?.showHistory() },
+            accessibilityLabel: Localized.Accessibility.historyButton,
+            accessibilityHint: Localized.Accessibility.historyHint
+        )
+
+        moreButton = createBarButton(
+            systemName: "ellipsis",
+            action: { [weak self] in self?.showMoreMenu() },
+            accessibilityLabel: Localized.Accessibility.moreButton,
+            accessibilityHint: Localized.Accessibility.moreHint
         )
 
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let fixedSpace = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        fixedSpace.width = 15
 
         toolBar.items = [
             backButton,
-            flexibleSpace,
             forwardButton,
-            flexibleSpace,
+            fixedSpace,
             refreshButton,
             flexibleSpace,
-            videoButton,
+            homeButton,
             flexibleSpace,
-            pictureInPictureButton,
-            flexibleSpace,
-            downloadButton,
-            flexibleSpace,
-            readingModeButton,
-            flexibleSpace,
-            shareButton
+            moreButton
         ]
 
         toolBar.accessibilityIdentifier = "MainToolbar"
+
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPressGesture.minimumPressDuration = 0.5
+        toolBar.addGestureRecognizer(longPressGesture)
     }
 
-    private func createBarButton(systemName: String, action: Selector, accessibilityLabel: String) -> UIBarButtonItem {
-        let button = UIBarButtonItem(image: UIImage(systemName: systemName), style: .plain, target: self, action: action)
-        button.accessibilityLabel = accessibilityLabel
-        button.accessibilityTraits = .button
-        return button
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        showQuickActionsMenu()
+    }
+
+    private func showQuickActionsMenu() {
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.backHistory, style: .default) { [weak self] _ in
+            self?.showBackHistoryList()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.forwardHistory, style: .default) { [weak self] _ in
+            self?.showForwardHistoryList()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.bookmarks, style: .default) { [weak self] _ in
+            self?.showBookmarks()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.addCurrentPage, style: .default) { [weak self] _ in
+            self?.toggleBookmark()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = toolBar
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: 0, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+
+    private func showBackHistoryList() {
+        let recentURLs = webView.backForwardList.backList
+        guard !recentURLs.isEmpty else { return }
+
+        let alert = UIAlertController(title: Localized.Menu.backHistory, message: nil, preferredStyle: .actionSheet)
+
+        for (index, item) in recentURLs.prefix(10).enumerated() {
+            let title = item.title ?? item.url.host ?? item.url.absoluteString
+            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                self?.webView.go(to: self?.webView.backForwardList.backList[recentURLs.count - 1 - index] ?? item)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = toolBar
+            popover.sourceRect = CGRect(x: 20, y: 0, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+
+    private func showForwardHistoryList() {
+        let recentURLs = webView.backForwardList.forwardList
+        guard !recentURLs.isEmpty else { return }
+
+        let alert = UIAlertController(title: Localized.Menu.forwardHistory, message: nil, preferredStyle: .actionSheet)
+
+        for item in recentURLs.prefix(10) {
+            let title = item.title ?? item.url.host ?? item.url.absoluteString
+            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                self?.webView.go(to: item)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = toolBar
+            popover.sourceRect = CGRect(x: 60, y: 0, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+
+    private func goHome() {
+        let homeURL = URL(string: "https://www.google.com")!
+        webView.load(URLRequest(url: homeURL))
+    }
+
+    private func createBarButton(systemName: String, action: @escaping () -> Void, accessibilityLabel: String, accessibilityHint: String) -> UIBarButtonItem {
+        let uiAction = UIAction(title: accessibilityLabel) { _ in
+            action()
+        }
+        uiAction.accessibilityLabel = accessibilityLabel
+        uiAction.accessibilityHint = accessibilityHint
+        
+        let item = UIBarButtonItem(image: UIImage(systemName: systemName), primaryAction: uiAction)
+        item.accessibilityLabel = accessibilityLabel
+        item.accessibilityHint = accessibilityHint
+        return item
     }
 
     private func setupWebView() {
-        let configuration = WKWebViewConfiguration()
+        let configuration = PerformanceMonitor.shared.optimizeWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.allowsPictureInPictureMediaPlayback = true
         configuration.allowsAirPlayForMediaPlayback = true
 
-        let preferences = WKWebpagePreferences()
-        preferences.allowsContentJavaScript = true
-        configuration.defaultWebpagePreferences = preferences
+        let preferences = WKPreferences()
+        preferences.javaScriptCanOpenWindowsAutomatically = false
+        configuration.preferences = preferences
 
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
-        webView.allowsPictureInPictureVideoPlayback = true
-        webView.accessibilityLabel = "Web Content"
+        webView.accessibilityLabel = Localized.Accessibility.webContent
         webView.accessibilityIdentifier = "MainWebView"
         view.addSubview(webView)
 
@@ -196,21 +333,72 @@ class BrowserViewController: UIViewController {
         progressView.accessibilityIdentifier = "PageProgressView"
         view.addSubview(progressView)
 
+        addressBarContainer = UIView()
+        addressBarContainer.translatesAutoresizingMaskIntoConstraints = false
+        addressBarContainer.backgroundColor = .secondarySystemBackground
+        addressBarContainer.layer.cornerRadius = 10
+        view.addSubview(addressBarContainer)
+
+        securityIcon = UIImageView()
+        securityIcon.translatesAutoresizingMaskIntoConstraints = false
+        securityIcon.image = UIImage(systemName: "lock.fill")
+        securityIcon.tintColor = .systemGreen
+        securityIcon.contentMode = .scaleAspectFit
+        addressBarContainer.addSubview(securityIcon)
+
         urlTextField = UITextField()
         urlTextField.translatesAutoresizingMaskIntoConstraints = false
-        urlTextField.borderStyle = .roundedRect
-        urlTextField.placeholder = "Enter URL or search"
+        urlTextField.borderStyle = .none
+        urlTextField.placeholder = Localized.Address.placeholder
         urlTextField.returnKeyType = .go
         urlTextField.autocapitalizationType = .none
         urlTextField.autocorrectionType = .no
         urlTextField.keyboardType = .URL
         urlTextField.clearButtonMode = .whileEditing
         urlTextField.delegate = self
-        urlTextField.accessibilityLabel = "Address Bar"
+        urlTextField.accessibilityLabel = Localized.Accessibility.addressBar
         urlTextField.accessibilityIdentifier = "URLTextField"
-        view.addSubview(urlTextField)
+        addressBarContainer.addSubview(urlTextField)
+
+        NSLayoutConstraint.activate([
+            addressBarContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            addressBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            addressBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            addressBarContainer.heightAnchor.constraint(equalToConstant: 44),
+
+            securityIcon.leadingAnchor.constraint(equalTo: addressBarContainer.leadingAnchor, constant: 12),
+            securityIcon.centerYAnchor.constraint(equalTo: addressBarContainer.centerYAnchor),
+            securityIcon.widthAnchor.constraint(equalToConstant: 20),
+            securityIcon.heightAnchor.constraint(equalToConstant: 20),
+
+            urlTextField.leadingAnchor.constraint(equalTo: securityIcon.trailingAnchor, constant: 8),
+            urlTextField.trailingAnchor.constraint(equalTo: addressBarContainer.trailingAnchor, constant: -12),
+            urlTextField.topAnchor.constraint(equalTo: addressBarContainer.topAnchor),
+            urlTextField.bottomAnchor.constraint(equalTo: addressBarContainer.bottomAnchor)
+        ])
+
+        updateSecurityIcon(url: nil)
 
         logger.info("WebView configured successfully")
+    }
+
+    private func updateSecurityIcon(url: URL?) {
+        guard let url = url else {
+            securityIcon.isHidden = true
+            return
+        }
+
+        securityIcon.isHidden = false
+
+        if url.scheme == "https" {
+            securityIcon.image = UIImage(systemName: "lock.fill")
+            securityIcon.tintColor = .systemGreen
+            urlTextField.textColor = .label
+        } else {
+            securityIcon.image = UIImage(systemName: "lock.open.fill")
+            securityIcon.tintColor = .systemOrange
+            urlTextField.textColor = .label
+        }
     }
 
     private func setupObservers() {
@@ -219,25 +407,24 @@ class BrowserViewController: UIViewController {
             DispatchQueue.main.async {
                 self?.progressView.progress = Float(progress)
                 self?.progressView.isHidden = progress >= 1.0
+                self?.updateNavigationButtonsViaJS()
             }
         }
+    }
 
-        mediaPlaybackObservation = webView.observe(\.mediaPlaybackState, options: [.new]) { [weak self] webView, _ in
-            let state = webView.mediaPlaybackState
+    private func updateNavigationButtonsViaJS() {
+        let script = "window.history.length > 1"
+        webView.evaluateJavaScript(script) { [weak self] result, _ in
+            let canGoBack = result as? Bool ?? false
             DispatchQueue.main.async {
-                self?.handleMediaPlaybackStateChange(state)
+                self?.backButton.isEnabled = canGoBack
             }
         }
     }
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            urlTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: LayoutConstant.urlFieldMargin),
-            urlTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: LayoutConstant.urlFieldMargin),
-            urlTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -LayoutConstant.urlFieldMargin),
-            urlTextField.heightAnchor.constraint(equalToConstant: LayoutConstant.urlFieldHeight),
-
-            progressView.topAnchor.constraint(equalTo: urlTextField.bottomAnchor, constant: LayoutConstant.urlFieldMargin / 2),
+            progressView.topAnchor.constraint(equalTo: addressBarContainer.bottomAnchor, constant: LayoutConstant.urlFieldMargin / 2),
             progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             progressView.heightAnchor.constraint(equalToConstant: LayoutConstant.progressViewHeight),
@@ -270,111 +457,195 @@ class BrowserViewController: UIViewController {
         logger.info("Notifications setup complete")
     }
 
-    @objc private func handleDownloadProgress(_ notification: Notification) {
-        guard let taskId = notification.userInfo?["taskId"] as? Int,
-              taskId == currentDownloadTaskId,
-              let progress = notification.userInfo?["progress"] as? Float,
-              let bytesWritten = notification.userInfo?["bytesWritten"] as? Int64,
-              let totalBytes = notification.userInfo?["totalBytes"] as? Int64 else {
-            return
-        }
-
-        DispatchQueue.main.async {
-            self.downloadProgressView?.progress = progress
-            let percentage = Int(progress * 100)
-            let downloadedSize = self.formatFileSize(bytesWritten)
-            let totalSize = self.formatFileSize(totalBytes)
-            self.downloadStatusLabel?.text = "Downloading: \(percentage)% (\(downloadedSize) / \(totalSize))"
-        }
-    }
-
-    @objc private func handleDownloadCompleted(_ notification: Notification) {
-        DispatchQueue.main.async {
-            self.hideDownloadProgress()
-            if let url = notification.userInfo?["url"] as? URL {
-                self.showDownloadSuccess(url: url)
-            }
-        }
-    }
-
-    private func formatFileSize(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: bytes)
+    private func cleanup() {
+        progressObservation?.invalidate()
+        progressObservation = nil
+        NotificationCenter.default.removeObserver(self)
+        VideoDownloadManager.shared.cancelAllDownloads()
+        exitReadingModeInternal()
     }
 
     private func loadHomePage() {
-        if let url = URL(string: "https://www.google.com") {
-            webView.load(URLRequest(url: url))
-            logger.info("Loading homepage: \(url.absoluteString)")
-        }
+        let homeURL = URL(string: "https://www.google.com")!
+        webView.load(URLRequest(url: homeURL))
     }
 
-    private func loadURL(_ string: String) {
-        var urlString = string.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func loadURL(_ urlString: String) {
+        var processedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard urlString.count <= LayoutConstant.maxURLLength else {
-            logger.warning("URL too long, truncated")
-            urlString = String(urlString.prefix(LayoutConstant.maxURLLength))
-        }
-
-        if !urlString.contains("://") && !urlString.hasPrefix("localhost") {
-            if urlString.contains(".") && !urlString.contains(" ") {
-                urlString = "https://" + urlString
+        if !processedURL.contains("://") {
+            if processedURL.contains(".") && !processedURL.contains(" ") {
+                processedURL = "https://\(processedURL)"
             } else {
-                let query = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? urlString
-                urlString = "https://www.google.com/search?q=" + query
+                let searchQuery = processedURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? processedURL
+                processedURL = "https://www.google.com/search?q=\(searchQuery)"
             }
         }
 
-        guard let url = URL(string: urlString), isValidNavigationURL(url) else {
-            logger.error("Invalid URL: \(string)")
-            showInvalidURLAlert()
+        guard let url = URL(string: processedURL) else {
+            showError(title: Localized.Error.invalidURL, message: Localized.Error.invalidURLMessage)
             return
         }
 
-        webView.load(URLRequest(url: url))
-        logger.info("Loading URL: \(url.absoluteString)")
+        guard url.scheme == "http" || url.scheme == "https" else {
+            showError(title: Localized.Error.invalidURL, message: Localized.Error.invalidURLMessage)
+            return
+        }
+
+        if SecurityPolicyManager.shared.shouldBlock(url: url) {
+            showError(title: Localized.Error.blocked, message: Localized.Error.blockedMessage)
+            return
+        }
+
+        if SecurityPolicyManager.shared.shouldForceHTTPS(for: url),
+           let httpsURL = SecurityPolicyManager.shared.getHTTPSURL(for: url) {
+            webView.load(URLRequest(url: httpsURL))
+        } else {
+            webView.load(URLRequest(url: url))
+        }
+
+        urlTextField.resignFirstResponder()
     }
 
-    private func isValidNavigationURL(_ url: URL) -> Bool {
-        guard let scheme = url.scheme?.lowercased() else {
-            return false
-        }
-        let validSchemes = ["http", "https"]
-        return validSchemes.contains(scheme)
+    private func updateNavigationButtons() {
+        updateNavigationButtonsViaJS()
+        forwardButton.isEnabled = webView.canGoForward
     }
 
     @objc private func goBack() {
-        webView.goBack()
-        logger.debug("Navigation: back")
+        if isReadingModeActive {
+            exitReadingMode()
+        } else {
+            webView.goBack()
+        }
     }
 
     @objc private func goForward() {
         webView.goForward()
-        logger.debug("Navigation: forward")
     }
 
     @objc private func reload() {
-        webView.reload()
-        logger.debug("Navigation: reload")
-    }
-
-    @objc private func sharePage() {
-        guard let url = webView.url else {
-            logger.warning("Share attempted with no URL")
-            return
+        if isReadingModeActive {
+            reloadReadingModeContent()
+        } else {
+            webView.reload()
         }
-        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        activityVC.popoverPresentationController?.sourceView = view
-        present(activityVC, animated: true)
-        logger.info("Sharing page: \(url.absoluteString)")
     }
 
-    private var isReadingModeActive = false
-    private var readerWebView: WKWebView?
-    private var originalWebViewSnapshot: Bool = false
+    @objc private func showMoreMenu() {
+        let alert = UIAlertController(
+            title: nil,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.download, style: .default) { [weak self] _ in
+            self?.downloadCurrentVideo()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.downloadList, style: .default) { [weak self] _ in
+            self?.showAllDownloads()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.bookmarks, style: .default) { [weak self] _ in
+            self?.showBookmarks()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.history, style: .default) { [weak self] _ in
+            self?.showHistory()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.addBookmark, style: .default) { [weak self] _ in
+            self?.toggleBookmark()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.findInPage, style: .default) { [weak self] _ in
+            self?.showFindInPage()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.desktopSite, style: .default) { [weak self] _ in
+            self?.toggleDesktopSite()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.readingMode, style: .default) { [weak self] _ in
+            self?.toggleReadingMode()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Menu.share, style: .default) { [weak self] _ in
+            self?.sharePage()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.maxX - 50, y: view.bounds.maxY - 50, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+
+    @objc private func showVideoOptions() {
+        let alert = UIAlertController(
+            title: Localized.Video.options,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+
+        alert.addAction(UIAlertAction(title: Localized.Video.fullscreen, style: .default) { [weak self] _ in
+            self?.enterFullscreenVideo()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Video.pip, style: .default) { [weak self] _ in
+            self?.togglePictureInPicture()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Video.download, style: .default) { [weak self] _ in
+            self?.downloadCurrentVideo()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+
+    @objc private func togglePictureInPicture() {
+        logger.info("Picture in Picture toggled")
+    }
+
+    @objc private func showDownloadOptions() {
+        let alert = UIAlertController(
+            title: Localized.Download.manager,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+
+        alert.addAction(UIAlertAction(title: Localized.Download.pageVideo, style: .default) { [weak self] _ in
+            self?.downloadCurrentVideo()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Download.currentMedia, style: .default) { [weak self] _ in
+            self?.downloadCurrentMedia()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Download.viewAll, style: .default) { [weak self] _ in
+            self?.showAllDownloads()
+        })
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+        }
+
+        present(alert, animated: true)
+    }
 
     @objc private func toggleReadingMode() {
         if isReadingModeActive {
@@ -385,664 +656,463 @@ class BrowserViewController: UIViewController {
     }
 
     private func enterReadingMode() {
-        logger.info("Entering reading mode")
-        originalWebViewSnapshot = true
-        isReadingModeActive = true
-        readingModeButton.image = UIImage(systemName: "doc.plaintext.fill")
-
-        let loadingAlert = UIAlertController(title: nil, message: "Preparing reading mode...", preferredStyle: .alert)
-        let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
-        loadingIndicator.hidesWhenStopped = true
-        loadingIndicator.style = .medium
-        loadingIndicator.startAnimating()
-        loadingAlert.view.addSubview(loadingIndicator)
-        present(loadingAlert, animated: true)
+        guard !isReadingModeActive else { return }
 
         ReadingModeManager.shared.extractArticleFromWebView(webView) { [weak self] article in
-            DispatchQueue.main.async {
-                loadingAlert.dismiss(animated: true) {
-                    guard let self = self else { return }
-
-                    if let article = article {
-                        self.showReadingModeView(with: article)
-                        self.logger.info("Article extracted successfully")
-                    } else {
-                        self.showNoArticleAlert()
-                        self.isReadingModeActive = false
-                        self.readingModeButton.image = UIImage(systemName: "doc.text.fill")
-                    }
+            guard let self = self, let article = article else {
+                DispatchQueue.main.async {
+                    self?.showError(title: Localized.Reading.noArticle, message: Localized.Reading.noArticleMessage)
                 }
+                return
+            }
+
+            DispatchQueue.main.async {
+                self.displayReadingMode(article: article)
             }
         }
     }
 
-    private func showReadingModeView(with article: ArticleContent) {
+    private func displayReadingMode(article: ArticleContent) {
+        isReadingModeActive = true
+        readingModeButton.isEnabled = true
+
+        let config = WKWebViewConfiguration()
+        readerWebView = WKWebView(frame: .zero, configuration: config)
+        readerWebView?.translatesAutoresizingMaskIntoConstraints = false
+        readerWebView?.navigationDelegate = self
+
         let html = ReadingModeManager.shared.generateHTML(for: article)
+        readerWebView?.loadHTMLString(html, baseURL: article.url)
 
-        let configuration = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
+        if let readerView = readerWebView {
+            view.addSubview(readerView)
 
-        let contentController = webView.configuration.userContentController
+            NSLayoutConstraint.activate([
+                readerView.topAnchor.constraint(equalTo: progressView.bottomAnchor),
+                readerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                readerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                readerView.bottomAnchor.constraint(equalTo: toolBar.topAnchor)
+            ])
+
+            readerView.isHidden = true
+            webView.isHidden = true
+            readerView.isHidden = false
+
+            setupReaderMessageHandlers()
+        }
+
+        logger.info("Entered reading mode for article: \(article.title)")
+    }
+
+    private func setupReaderMessageHandlers() {
+        let contentController = userContentController
         contentController.add(self, name: "fontSizeChanged")
         contentController.add(self, name: "themeChanged")
-
-        self.readerWebView = webView
-
-        webView.loadHTMLString(html, baseURL: article.url)
-
-        let closeButton = UIButton(type: .system)
-        closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        closeButton.tintColor = .systemGray
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.addTarget(self, action: #selector(exitReadingMode), for: .touchUpInside)
-        closeButton.accessibilityLabel = "Exit Reading Mode"
-
-        view.addSubview(webView)
-        view.addSubview(closeButton)
-
-        webView.topAnchor.constraint(equalTo: progressView.bottomAnchor).isActive = true
-        webView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
-        webView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
-        webView.bottomAnchor.constraint(equalTo: toolBar.topAnchor).isActive = true
-
-        closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8).isActive = true
-        closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8).isActive = true
-        closeButton.widthAnchor.constraint(equalToConstant: 44).isActive = true
-        closeButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
-
-        webView.alpha = 0
-        UIView.animate(withDuration: 0.3) {
-            self.webView.alpha = 0.3
-            webView.alpha = 1
-        }
     }
 
-    @objc private func exitReadingMode() {
-        logger.info("Exiting reading mode")
+    private var userContentController: WKUserContentController {
+        return readerWebView?.configuration.userContentController ?? WKUserContentController()
+    }
+
+    private func exitReadingMode() {
+        guard isReadingModeActive else { return }
+
+        cleanupReaderWebView()
+        webView.isHidden = false
+        readingModeButton.isEnabled = false
+
+        logger.info("Exited reading mode")
+    }
+
+    private func exitReadingModeInternal() {
+        cleanupReaderWebView()
+    }
+
+    private func cleanupReaderWebView() {
         isReadingModeActive = false
-        readingModeButton.image = UIImage(systemName: "doc.text")
+        readerWebView?.stopLoading()
+        readerWebView?.navigationDelegate = nil
+        readerWebView?.uiDelegate = nil
+        readerWebView?.configuration.userContentController.removeScriptMessageHandler(forName: "fontSizeChanged")
+        readerWebView?.configuration.userContentController.removeScriptMessageHandler(forName: "themeChanged")
+        readerWebView?.removeFromSuperview()
+        readerWebView = nil
+    }
 
-        if let readerWebView = readerWebView {
-            let contentController = readerWebView.configuration.userContentController
-            contentController.removeScriptMessageHandler(forName: "fontSizeChanged")
-            contentController.removeScriptMessageHandler(forName: "themeChanged")
+    private func reloadReadingModeContent() {
+        guard isReadingModeActive else { return }
 
-            UIView.animate(withDuration: 0.3, animations: {
-                readerWebView.alpha = 0
-            }) { _ in
-                readerWebView.removeFromSuperview()
-                if let closeButton = self.view.subviews.first(where: { $0.accessibilityLabel == "Exit Reading Mode" }) {
-                    closeButton.removeFromSuperview()
-                }
-                self.readerWebView = nil
-            }
+        readerWebView?.reload()
+    }
+
+    @objc private func sharePage() {
+        guard let url = webView.url else { return }
+
+        let activityVC = UIActivityViewController(
+            activityItems: [url],
+            applicationActivities: nil
+        )
+
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
         }
+
+        present(activityVC, animated: true)
     }
 
-    private func showNoArticleAlert() {
-        let alert = UIAlertController(
-            title: "No Article Found",
-            message: "Reading mode couldn't find article content on this page. Try a news article or blog post.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-
-
-    @objc private func showVideoOptions() {
-        let alertController = UIAlertController(
-            title: "Video Options",
-            message: "Choose video playback mode",
-            preferredStyle: .actionSheet
-        )
-
-        alertController.addAction(UIAlertAction(title: "Full Screen", style: .default) { [weak self] _ in
-            self?.checkForVideoAndPlayFullScreen()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Picture in Picture", style: .default) { [weak self] _ in
-            self?.togglePictureInPicture()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Download Video", style: .default) { [weak self] _ in
-            self?.downloadCurrentVideo()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Open Video Page", style: .default) { [weak self] _ in
-            self?.openVideoPageInNewTab()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        alertController.popoverPresentationController?.barButtonItem = videoButton
-        present(alertController, animated: true)
-    }
-
-    @objc private func showDownloadOptions() {
-        let alertController = UIAlertController(
-            title: "Download Manager",
-            message: "Manage your downloads",
-            preferredStyle: .actionSheet
-        )
-
-        alertController.addAction(UIAlertAction(title: "Download Page Video", style: .default) { [weak self] _ in
-            self?.downloadCurrentVideo()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Download Current Media", style: .default) { [weak self] _ in
-            self?.downloadCurrentMedia()
-        })
-
-        alertController.addAction(UIAlertAction(title: "View Downloads", style: .default) { [weak self] _ in
-            self?.showDownloadsList()
-        })
-
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        alertController.popoverPresentationController?.barButtonItem = downloadButton
-        present(alertController, animated: true)
+    private func enterFullscreenVideo() {
+        logger.info("Entering fullscreen video mode")
     }
 
     private func downloadCurrentVideo() {
-        let script = """
-        (function() {
-            var video = document.querySelector('video');
-            if (video) {
-                var src = video.src || video.currentSrc;
-                if (!src) {
-                    var source = video.querySelector('source');
-                    if (source) src = source.src;
-                }
-                if (src && src.length < \(LayoutConstant.maxURLLength)) {
-                    return {
-                        found: true,
-                        src: src,
-                        duration: video.duration,
-                        currentTime: video.currentTime
-                    };
+        guard let url = webView.url else {
+            showError(title: Localized.Download.failed, message: Localized.Error.invalidURLMessage)
+            return
+        }
+
+        showDownloadProgress()
+        VideoDownloadManager.shared.downloadVideo(from: url) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.hideDownloadProgress()
+
+                switch result {
+                case .success(let savedURL):
+                    self?.showDownloadSuccess(url: savedURL)
+                case .failure(let error):
+                    self?.showError(title: Localized.Download.failed, message: error.localizedDescription)
                 }
             }
-            return { found: false };
-        })();
-        """
-
-        evaluateJavaScriptAndDownload(script: script, fallbackHandler: { [weak self] in
-            self?.showNoVideoAlert()
-        })
+        }
     }
 
     private func downloadCurrentMedia() {
         let script = """
         (function() {
             var video = document.querySelector('video');
-            var audio = document.querySelector('audio');
-            var media = video || audio;
-
-            if (media) {
-                var src = media.src || media.currentSrc;
-                if (!src) {
-                    var source = media.querySelector('source');
-                    if (source) src = source.src;
-                }
-                if (src && src.length < \(LayoutConstant.maxURLLength)) {
-                    return {
-                        found: true,
-                        type: video ? 'video' : 'audio',
-                        src: src,
-                        duration: media.duration
-                    };
-                }
+            if (video) {
+                return video.src || video.currentSrc;
             }
-            return { found: false };
+            var source = document.querySelector('source');
+            if (source) {
+                return source.src;
+            }
+            return null;
         })();
         """
 
-        evaluateJavaScriptAndDownload(script: script, fallbackHandler: { [weak self] in
-            self?.showNoMediaAlert()
-        })
-    }
-
-    private func evaluateJavaScriptAndDownload(script: String, fallbackHandler: @escaping () -> Void) {
         webView.evaluateJavaScript(script) { [weak self] result, error in
             guard let self = self else { return }
 
             if let error = error {
-                self.logger.error("JavaScript evaluation failed: \(error.localizedDescription)")
-                fallbackHandler()
-                return
-            }
-
-            guard let dict = result as? [String: Any],
-                  let found = dict["found"] as? Bool,
-                  found,
-                  let src = dict["src"] as? String,
-                  !src.isEmpty,
-                  let url = URL(string: src),
-                  self.isValidDownloadURL(url) else {
-                fallbackHandler()
-                return
-            }
-
-            let mediaType = dict["type"] as? String ?? "media"
-            let fileName = "\(mediaType)_\(Int(Date().timeIntervalSince1970)).mp4"
-            self.startDownload(url: url, fileName: fileName)
-        }
-    }
-
-    private func isValidDownloadURL(_ url: URL) -> Bool {
-        guard let scheme = url.scheme?.lowercased() else {
-            return false
-        }
-        let validSchemes = ["http", "https"]
-        return validSchemes.contains(scheme) && url.host?.isEmpty == false
-    }
-
-    private func startDownload(url: URL, fileName: String) {
-        showDownloadProgress()
-        logger.info("Starting download: \(fileName)")
-
-        VideoDownloadManager.shared.downloadVideo(from: url) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.hideDownloadProgress()
-
-                switch result {
-                case .success(let downloadedURL):
-                    self?.logger.info("Download success: \(downloadedURL.lastPathComponent)")
-                    self?.showDownloadSuccess(url: downloadedURL)
-                case .failure(let error):
-                    self?.logger.error("Download failed: \(error.localizedDescription)")
-                    self?.showDownloadError(error)
+                DispatchQueue.main.async {
+                    self.showError(title: Localized.Download.failed, message: error.localizedDescription)
                 }
+                return
+            }
+
+            guard let urlString = result as? String, let url = URL(string: urlString) else {
+                DispatchQueue.main.async {
+                    self.showError(title: Localized.Video.noVideo, message: Localized.Video.noVideoMessage)
+                }
+                return
+            }
+
+            DispatchQueue.main.async {
+                self.showDownloadProgress()
+            }
+
+            VideoDownloadManager.shared.downloadVideo(from: url) { result in
+                DispatchQueue.main.async {
+                    self.hideDownloadProgress()
+
+                    switch result {
+                    case .success(let savedURL):
+                        self.showDownloadSuccess(url: savedURL)
+                    case .failure(let error):
+                        self.showError(title: Localized.Download.failed, message: error.localizedDescription)
+                    }
+                }
+            }
+        }
+    }
+
+    private func showAllDownloads() {
+        let downloadsVC = DownloadsViewController()
+        let navController = UINavigationController(rootViewController: downloadsVC)
+        present(navController, animated: true)
+    }
+
+    private func showHistory() {
+        let historyVC = HistoryViewController()
+        let navController = UINavigationController(rootViewController: historyVC)
+        present(navController, animated: true)
+    }
+
+    private func showBookmarks() {
+        let bookmarkVC = BookmarkViewController()
+        let navController = UINavigationController(rootViewController: bookmarkVC)
+        present(navController, animated: true)
+    }
+
+    private func toggleBookmark() {
+        guard let url = webView.url else { return }
+
+        if BookmarkManager.shared.isBookmarked(url: url) {
+            BookmarkManager.shared.removeBookmark(url: url)
+            showToast(message: Localized.Bookmark.removed)
+        } else {
+            let title = webView.title ?? url.host ?? url.absoluteString
+            BookmarkManager.shared.addBookmark(url: url, title: title)
+            showToast(message: Localized.Bookmark.added)
+        }
+    }
+
+    private func showFindInPage() {
+        let alert = UIAlertController(
+            title: Localized.FindInPage.title,
+            message: nil,
+            preferredStyle: .alert
+        )
+
+        alert.addTextField { textField in
+            textField.placeholder = Localized.FindInPage.placeholder
+            textField.autocapitalizationType = .none
+            textField.autocorrectionType = .no
+        }
+
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: Localized.FindInPage.search, style: .default) { [weak self] _ in
+            if let query = alert.textFields?.first?.text, !query.isEmpty {
+                self?.findInPage(query: query)
+            }
+        })
+
+        present(alert, animated: true)
+    }
+
+    private func findInPage(query: String) {
+        let escapedQuery = query
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+        let script = "window.find('\(escapedQuery)', false, false, true, false, true, false)"
+        webView.evaluateJavaScript(script, completionHandler: nil)
+    }
+
+    private var isDesktopSite = false
+
+    private func toggleDesktopSite() {
+        isDesktopSite.toggle()
+
+        let ua = isDesktopSite ?
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15" :
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+
+        webView.customUserAgent = ua
+        webView.reload()
+
+        let message = isDesktopSite ? Localized.Menu.desktopSiteOn : Localized.Menu.desktopSiteOff
+        showToast(message: message)
+    }
+
+    private func showToast(message: String) {
+        let toastLabel = UILabel()
+        toastLabel.text = message
+        toastLabel.textAlignment = .center
+        toastLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        toastLabel.textColor = .white
+        toastLabel.font = .systemFont(ofSize: 14)
+        toastLabel.layer.cornerRadius = 10
+        toastLabel.clipsToBounds = true
+        toastLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(toastLabel)
+
+        NSLayoutConstraint.activate([
+            toastLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toastLabel.bottomAnchor.constraint(equalTo: toolBar.topAnchor, constant: -20),
+            toastLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 150),
+            toastLabel.heightAnchor.constraint(equalToConstant: 40)
+        ])
+
+        toastLabel.alpha = 0
+        UIView.animate(withDuration: 0.3, animations: {
+            toastLabel.alpha = 1
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 1.5, options: [], animations: {
+                toastLabel.alpha = 0
+            }) { _ in
+                toastLabel.removeFromSuperview()
             }
         }
     }
 
     private func showDownloadProgress() {
-        let containerView = UIView()
-        containerView.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.accessibilityIdentifier = "DownloadOverlay"
-        view.addSubview(containerView)
+        guard downloadProgressView == nil else { return }
 
-        let stackView = UIStackView()
-        stackView.axis = .vertical
-        stackView.spacing = 12
-        stackView.alignment = .center
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(stackView)
+        let container = UIView()
+        container.backgroundColor = .systemBackground
+        container.layer.cornerRadius = 12
+        container.layer.shadowColor = UIColor.black.cgColor
+        container.layer.shadowOpacity = 0.2
+        container.layer.shadowOffset = CGSize(width: 0, height: 2)
+        container.layer.shadowRadius = 4
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.tag = LayoutTag.downloadOverlay
 
-        let iconImageView = UIImageView(image: UIImage(systemName: "arrow.down.circle.fill"))
-        iconImageView.tintColor = .white
-        iconImageView.contentMode = .scaleAspectFit
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.widthAnchor.constraint(equalToConstant: LayoutConstant.iconSize).isActive = true
-        iconImageView.heightAnchor.constraint(equalToConstant: LayoutConstant.iconSize).isActive = true
-        iconImageView.accessibilityLabel = "Downloading"
-        stackView.addArrangedSubview(iconImageView)
+        let label = UILabel()
+        label.text = Localized.Download.starting
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
 
-        let progressView = UIProgressView(progressViewStyle: .default)
-        progressView.progressTintColor = .systemBlue
-        progressView.translatesAutoresizingMaskIntoConstraints = false
-        progressView.widthAnchor.constraint(equalToConstant: LayoutConstant.progressWidth).isActive = true
-        stackView.addArrangedSubview(progressView)
-        self.downloadProgressView = progressView
+        let progress = UIProgressView(progressViewStyle: .bar)
+        progress.progressTintColor = .systemBlue
+        progress.translatesAutoresizingMaskIntoConstraints = false
+        progress.tag = 201
 
-        let statusLabel = UILabel()
-        statusLabel.text = "Preparing download..."
-        statusLabel.textColor = .white
-        statusLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        stackView.addArrangedSubview(statusLabel)
-        self.downloadStatusLabel = statusLabel
-
-        let cancelButton = UIButton(type: .system)
-        cancelButton.setTitle("Cancel", for: .normal)
-        cancelButton.setTitleColor(.white, for: .normal)
-        cancelButton.accessibilityLabel = "Cancel Download"
-        cancelButton.addTarget(self, action: #selector(cancelDownload), for: .touchUpInside)
-        stackView.addArrangedSubview(cancelButton)
+        container.addSubview(label)
+        container.addSubview(progress)
+        view.addSubview(container)
 
         NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: view.topAnchor),
-            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            container.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            container.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            container.widthAnchor.constraint(equalToConstant: LayoutConstant.progressWidth),
 
-            stackView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            stackView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+
+            progress.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 12),
+            progress.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            progress.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            progress.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16)
         ])
 
-        containerView.alpha = 0
-        UIView.animate(withDuration: 0.3) {
-            containerView.alpha = 1
-        }
-    }
-
-    @objc private func cancelDownload() {
-        logger.info("Cancelling download")
-        hideDownloadProgress()
+        downloadProgressView = progress
+        downloadStatusLabel = label
     }
 
     private func hideDownloadProgress() {
-        guard let containerView = view.subviews.first(where: { $0.accessibilityIdentifier == "DownloadOverlay" }) else {
-            return
-        }
-
-        UIView.animate(withDuration: 0.3) {
-            containerView.alpha = 0
-        } completion: { _ in
-            containerView.removeFromSuperview()
-        }
+        view.viewWithTag(LayoutTag.downloadOverlay)?.removeFromSuperview()
         downloadProgressView = nil
         downloadStatusLabel = nil
-        currentDownloadTaskId = nil
+    }
+
+    @objc private func handleDownloadProgress(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let progress = userInfo["progress"] as? Float,
+              let bytesWritten = userInfo["bytesWritten"] as? Int64,
+              let totalBytes = userInfo["totalBytes"] as? Int64 else { return }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.downloadProgressView?.progress = progress
+            let percent = Int(progress * 100)
+            self?.downloadStatusLabel?.text = Localized.Download.progress(
+                percent,
+                downloaded: ByteCountFormatter.string(fromByteCount: bytesWritten, countStyle: .file),
+                total: ByteCountFormatter.string(fromByteCount: totalBytes, countStyle: .file)
+            )
+        }
+    }
+
+    @objc private func handleDownloadCompleted(_ notification: Notification) {
+        logger.info("Download completed notification received")
     }
 
     private func showDownloadSuccess(url: URL) {
         let alert = UIAlertController(
-            title: "Download Complete!",
-            message: "Video saved to:\n\(url.lastPathComponent)",
+            title: Localized.Download.complete,
+            message: Localized.Download.savedTo(url.lastPathComponent),
             preferredStyle: .alert
         )
 
-        alert.addAction(UIAlertAction(title: "Share", style: .default) { [weak self] _ in
-            self?.shareDownloadedFile(url: url)
+        alert.addAction(UIAlertAction(title: Localized.Download.share, style: .default) { [weak self] _ in
+            let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            self?.present(activityVC, animated: true)
         })
 
-        alert.addAction(UIAlertAction(title: "View in Files", style: .default) { [weak self] _ in
-            self?.openInFiles(url: url)
+        alert.addAction(UIAlertAction(title: Localized.Download.viewInFiles, style: .default) { _ in
+            if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                UIApplication.shared.open(documentsURL)
+            }
         })
 
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .cancel))
 
         present(alert, animated: true)
     }
 
-    private func showDownloadError(_ error: Error) {
-        let alert = UIAlertController(
-            title: "Download Failed",
-            message: error.localizedDescription,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+    private func showError(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .default))
         present(alert, animated: true)
-    }
-
-    private func showInvalidURLAlert() {
-        let alert = UIAlertController(
-            title: "Invalid URL",
-            message: "Please enter a valid web address.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-
-    private func showNoVideoAlert() {
-        let alert = UIAlertController(
-            title: "No Video Found",
-            message: "This page doesn't contain any detectable video. Try loading a video website like YouTube.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-
-    private func showNoMediaAlert() {
-        let alert = UIAlertController(
-            title: "No Media Found",
-            message: "This page doesn't contain any playable media.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-
-    private func showDownloadsList() {
-        let result = VideoDownloadManager.shared.getAllDownloads()
-
-        switch result {
-        case .success(let downloads):
-            let alert = UIAlertController(
-                title: "Downloads",
-                message: "\(downloads.count) video(s) downloaded",
-                preferredStyle: .actionSheet
-            )
-
-            if downloads.isEmpty {
-                alert.message = "No downloads yet"
-            } else {
-                for (index, url) in downloads.prefix(5).enumerated() {
-                    let fileName = url.lastPathComponent
-                    alert.addAction(UIAlertAction(title: "\(index + 1). \(fileName)", style: .default) { [weak self] _ in
-                        self?.shareDownloadedFile(url: url)
-                    })
-                }
-            }
-
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.popoverPresentationController?.barButtonItem = downloadButton
-            present(alert, animated: true)
-
-        case .failure(let error):
-            showDownloadError(error)
-        }
-    }
-
-    private func shareDownloadedFile(url: URL) {
-        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        activityVC.popoverPresentationController?.sourceView = view
-        activityVC.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
-        present(activityVC, animated: true)
-    }
-
-    private func openInFiles(url: URL) {
-        let documentController = UIDocumentInteractionController(url: url)
-        documentController.delegate = self
-        documentController.presentPreview(animated: true)
-    }
-
-    @objc private func togglePictureInPicture() {
-        if #available(iOS 15.0, *) {
-            if webView.isPictureInPictureActive {
-                webView.stopPictureInPicture()
-                logger.debug("PiP stopped")
-            } else {
-                webView.startPictureInPicture()
-                logger.debug("PiP started")
-            }
-        }
-    }
-
-    private func checkForVideoAndPlayFullScreen() {
-        let script = """
-        (function() {
-            var videos = document.querySelectorAll('video');
-            if (videos.length > 0) {
-                var video = videos[0];
-                return {
-                    found: true,
-                    playing: !video.paused,
-                    duration: video.duration,
-                    currentTime: video.currentTime,
-                    src: video.src || video.currentSrc
-                };
-            }
-            return { found: false };
-        })();
-        """
-
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            guard let self = self else { return }
-
-            if let error = error {
-                self.logger.error("Fullscreen check failed: \(error.localizedDescription)")
-                return
-            }
-
-            guard let dict = result as? [String: Any],
-                  let found = dict["found"] as? Bool,
-                  found else {
-                self.showNoVideoAlert()
-                return
-            }
-
-            self.webView.enterFullScreen()
-            self.logger.debug("Entered fullscreen")
-        }
-    }
-
-    private func openVideoPageInNewTab() {
-        let alert = UIAlertController(
-            title: "Video Websites",
-            message: "Choose a video platform to open:",
-            preferredStyle: .actionSheet
-        )
-
-        let videoSites = [
-            ("YouTube", "youtube.com"),
-            ("Vimeo", "vimeo.com"),
-            ("Dailymotion", "dailymotion.com")
-        ]
-
-        for (name, url) in videoSites {
-            alert.addAction(UIAlertAction(title: name, style: .default) { [weak self] _ in
-                self?.loadURL(url)
-            })
-        }
-
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.popoverPresentationController?.barButtonItem = videoButton
-        present(alert, animated: true)
-    }
-
-    private func detectVideoInPage() {
-        let script = """
-        (function() {
-            var videos = document.querySelectorAll('video');
-            var audios = document.querySelectorAll('audio');
-            var hasMedia = (videos.length > 0 || audios.length > 0);
-
-            var hasArticle = !!(
-                document.querySelector('article') ||
-                document.querySelector('[role="article"]') ||
-                document.querySelector('.article') ||
-                document.querySelector('.post') ||
-                document.querySelector('.entry-content') ||
-                document.querySelector('main')
-            );
-
-            return {
-                hasMedia: hasMedia,
-                hasArticle: hasArticle
-            };
-        })();
-        """
-
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            guard let self = self else { return }
-
-            if let error = error {
-                self.logger.error("Content detection failed: \(error.localizedDescription)")
-                return
-            }
-
-            if let dict = result as? [String: Any] {
-                let hasMedia = dict["hasMedia"] as? Bool ?? false
-                let hasArticle = dict["hasArticle"] as? Bool ?? false
-
-                self.videoButton.isEnabled = hasMedia
-                self.downloadButton.isEnabled = hasMedia
-                self.readingModeButton.isEnabled = hasArticle
-
-                if hasMedia {
-                    self.videoButton.image = UIImage(systemName: "play.rectangle.fill")
-                    self.downloadButton.image = UIImage(systemName: "arrow.down.to.line.circle.fill")
-                } else {
-                    self.videoButton.image = UIImage(systemName: "play.rectangle")
-                    self.downloadButton.image = UIImage(systemName: "arrow.down.to.line")
-                }
-
-                if hasArticle {
-                    self.readingModeButton.image = UIImage(systemName: "doc.text.fill")
-                } else {
-                    self.readingModeButton.image = UIImage(systemName: "doc.text")
-                }
-            }
-        }
-    }
-
-    private func updateNavigationButtons() {
-        backButton.isEnabled = webView.canGoBack
-        forwardButton.isEnabled = webView.canGoForward
-    }
-
-    private func handleMediaPlaybackStateChange(_ state: WKWebView.MediaPlaybackState) {
-        isVideoPlaying = (state == .playing)
-
-        if isVideoPlaying {
-            videoButton.image = UIImage(systemName: "pause.rectangle.fill")
-            pictureInPictureButton.isEnabled = true
-        } else if state == .paused {
-            videoButton.image = UIImage(systemName: "play.rectangle.fill")
-            pictureInPictureButton.isEnabled = true
-        }
-    }
-
-    override var supportedInterfaceOrientationsForChild: UIViewController {
-        return .all
-    }
-
-    override var shouldAutorotate: Bool {
-        return true
     }
 }
 
 extension BrowserViewController: WKNavigationDelegate {
+
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        DispatchQueue.main.async {
-            self.progressView.isHidden = false
-            self.progressView.progress = 0
-            self.isVideoPlaying = false
-            self.videoButton.isEnabled = false
-            self.pictureInPictureButton.isEnabled = false
-            self.downloadButton.isEnabled = false
-        }
-        logger.info("Started navigation")
+        logger.info("Started loading: \(webView.url?.absoluteString ?? "unknown")")
+        progressView.isHidden = false
+        progressView.progress = 0
+        urlTextField.text = webView.url?.absoluteString
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        DispatchQueue.main.async {
-            self.urlTextField.text = self.webView.url?.absoluteString
-            self.updateNavigationButtons()
-            self.progressView.isHidden = true
-            self.detectVideoInPage()
+        logger.info("Finished loading: \(webView.url?.absoluteString ?? "unknown")")
+        updateNavigationButtons()
+        urlTextField.text = webView.url?.absoluteString
+        updateSecurityIcon(url: webView.url)
+
+        if let url = webView.url {
+            webView.evaluateJavaScript("document.title") { [weak self] result, _ in
+                let title = result as? String ?? ""
+                HistoryManager.shared.addEntry(url: url, title: title)
+            }
         }
-        logger.info("Navigation finished: \(self.webView.url?.absoluteString ?? "unknown")")
+
+        readingModeButton.isEnabled = true
+        downloadButton.isEnabled = true
+
+        checkForVideo()
+
+        // 延迟更新一次，确保 canGoBack 状态正确
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.updateNavigationButtons()
+        }
+    }
+
+    private func checkForVideo() {
+        let script = """
+        (function() {
+            var video = document.querySelector('video');
+            if (video && video.src) return true;
+            var videos = document.querySelectorAll('video');
+            return videos.length > 0;
+        })();
+        """
+        webView.evaluateJavaScript(script) { [weak self] result, _ in
+            let hasVideo = result as? Bool ?? false
+            DispatchQueue.main.async {
+                self?.videoButton.isEnabled = hasVideo
+                self?.pictureInPictureButton.isEnabled = hasVideo
+            }
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        DispatchQueue.main.async {
-            self.progressView.isHidden = true
-            self.updateNavigationButtons()
-        }
-        logger.error("Navigation failed: \(error.localizedDescription)")
+        logger.error("Failed to load: \(error.localizedDescription)")
+        updateNavigationButtons()
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.cancel)
-            return
-        }
 
-        guard isValidNavigationURL(url) else {
-            logger.warning("Blocked navigation to invalid URL: \(url.absoluteString)")
+        if let url = navigationAction.request.url,
+           SecurityPolicyManager.shared.shouldBlock(url: url) {
+            logger.warning("Blocked navigation to: \(url.host ?? "unknown")")
             decisionHandler(.cancel)
             return
         }
@@ -1056,6 +1126,7 @@ extension BrowserViewController: WKNavigationDelegate {
 }
 
 extension BrowserViewController: WKUIDelegate {
+
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if navigationAction.targetFrame == nil {
             webView.load(navigationAction.request)
@@ -1065,7 +1136,7 @@ extension BrowserViewController: WKUIDelegate {
 
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .default) { _ in
             completionHandler()
         })
         present(alert, animated: true)
@@ -1073,37 +1144,60 @@ extension BrowserViewController: WKUIDelegate {
 
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel) { _ in
             completionHandler(false)
         })
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .default) { _ in
             completionHandler(true)
+        })
+        present(alert, animated: true)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
+        let alert = UIAlertController(title: nil, message: prompt, preferredStyle: .alert)
+        alert.addTextField { textField in
+            textField.text = defaultText
+        }
+        alert.addAction(UIAlertAction(title: Localized.Error.cancel, style: .cancel) { _ in
+            completionHandler(nil)
+        })
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .default) { _ in
+            completionHandler(alert.textFields?.first?.text)
         })
         present(alert, animated: true)
     }
 }
 
-extension BrowserViewController: UIDocumentInteractionControllerDelegate {
-    func documentInteractionControllerViewControllerForPreview(_ controller: UIDocumentInteractionController) -> UIViewController {
-        return self
+extension BrowserViewController: UITextFieldDelegate {
+
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        guard let text = textField.text, !text.isEmpty else { return false }
+        loadURL(text)
+        return true
+    }
+
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        let currentText = textField.text ?? ""
+        guard let stringRange = Range(range, in: currentText) else { return false }
+        let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
+        return updatedText.count <= LayoutConstant.maxURLLength
     }
 }
 
 extension BrowserViewController: WKScriptMessageHandler {
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? String else { return }
 
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         switch message.name {
         case "fontSizeChanged":
-            if let fontSize = Int(body) {
-                ReadingModeManager.shared.updateFontSize(fontSize)
-                logger.info("Font size changed to: \(fontSize)")
+            if let size = message.body as? Int {
+                ReadingModeManager.shared.updateFontSize(size)
+                logger.info("Font size changed to: \(size)")
             }
         case "themeChanged":
-            let themeName = body.lowercased()
-            if let theme = ReadingPreferences.ReadingTheme.allCases.first(where: { $0.rawValue.lowercased() == themeName }) {
+            if let themeName = message.body as? String,
+               let theme = ReadingPreferences.ReadingTheme(rawValue: themeName.capitalized) {
                 ReadingModeManager.shared.updateTheme(theme)
-                logger.info("Theme changed to: \(theme.rawValue)")
+                logger.info("Theme changed to: \(themeName)")
             }
         default:
             break
@@ -1111,30 +1205,118 @@ extension BrowserViewController: WKScriptMessageHandler {
     }
 }
 
-extension BrowserViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        textField.resignFirstResponder()
-        if let text = textField.text, !text.isEmpty {
-            loadURL(text)
-        }
-        return true
-    }
-}
+class DownloadsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
-extension WKWebView {
-    func enterFullScreen() {
-        evaluateJavaScript("document.querySelector('video')?.requestFullscreen()") { _, error in
-            if let error = error {
-                print("Failed to enter fullscreen: \(error.localizedDescription)")
+    private var tableView: UITableView!
+    private var downloads: [URL] = []
+    private var emptyLabel: UILabel!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = Localized.Download.manager
+        view.backgroundColor = .systemBackground
+
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(closeTapped)
+        )
+
+        setupUI()
+        loadDownloads()
+    }
+
+    private func setupUI() {
+        tableView = UITableView(frame: view.bounds, style: .plain)
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(tableView)
+
+        emptyLabel = UILabel()
+        emptyLabel.text = Localized.Download.noDownloads
+        emptyLabel.textAlignment = .center
+        emptyLabel.textColor = .secondaryLabel
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(emptyLabel)
+
+        NSLayoutConstraint.activate([
+            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+    }
+
+    private func loadDownloads() {
+        let result = VideoDownloadManager.shared.getAllDownloads()
+        switch result {
+        case .success(let urls):
+            downloads = urls
+        case .failure:
+            downloads = []
+        }
+
+        tableView.reloadData()
+        emptyLabel.isHidden = !downloads.isEmpty
+    }
+
+    @objc private func closeTapped() {
+        dismiss(animated: true)
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return downloads.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "DownloadCell")
+        let url = downloads[indexPath.row]
+
+        cell.textLabel?.text = url.lastPathComponent
+        cell.textLabel?.numberOfLines = 1
+
+        if let info = VideoDownloadManager.shared.getDownloadInfo(at: url) {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .short
+            cell.detailTextLabel?.text = "\(ByteCountFormatter.string(fromByteCount: info.size, countStyle: .file)) - \(dateFormatter.string(from: info.date))"
+        }
+
+        cell.accessoryType = .disclosureIndicator
+        return cell
+    }
+
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let url = downloads[indexPath.row]
+            let result = VideoDownloadManager.shared.deleteDownload(at: url)
+
+            switch result {
+            case .success:
+                downloads.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: .automatic)
+            case .failure(let error):
+                showError(error.localizedDescription)
             }
         }
     }
 
-    func exitFullScreen() {
-        evaluateJavaScript("document.exitFullscreen()") { _, error in
-            if let error = error {
-                print("Failed to exit fullscreen: \(error.localizedDescription)")
-            }
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+
+        let url = downloads[indexPath.row]
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
         }
+
+        present(activityVC, animated: true)
+    }
+
+    private func showError(_ message: String) {
+        let alert = UIAlertController(title: Localized.Error.generic, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Localized.Error.ok, style: .default))
+        present(alert, animated: true)
     }
 }

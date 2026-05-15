@@ -2,6 +2,7 @@ import Foundation
 import WebKit
 import os.log
 
+/// Security settings configuration for the browser
 struct SecuritySettings {
     var forceHTTPS: Bool
     var blockAds: Bool
@@ -24,6 +25,7 @@ struct SecuritySettings {
     }
 }
 
+/// Manages browser security policies including HTTPS forcing, ad blocking, and tracker blocking
 class SecurityPolicyManager {
     static let shared = SecurityPolicyManager()
 
@@ -63,7 +65,6 @@ class SecurityPolicyManager {
     func shouldForceHTTPS(for url: URL) -> Bool {
         guard settings.forceHTTPS else { return false }
         guard url.scheme == "http" else { return false }
-        guard isHTTPSAvailable(for: url) else { return false }
         return true
     }
 
@@ -73,29 +74,6 @@ class SecurityPolicyManager {
         }
         components.scheme = "https"
         return components.url
-    }
-
-    private func isHTTPSAvailable(for url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        let httpsHost = "https://\(host)"
-        let testURL = URL(string: httpsHost) ?? URL(string: "https://\(host)/")
-
-        var request = URLRequest(url: testURL ?? httpURL)
-        request.httpMethod = "HEAD"
-        request.timeoutInterval = 5
-
-        let semaphore = DispatchSemaphore(value: 0)
-        var httpsAvailable = false
-
-        URLSession.shared.dataTask(with: request) { _, response, _ in
-            if let httpResponse = response as? HTTPURLResponse {
-                httpsAvailable = (200...299).contains(httpResponse.statusCode)
-            }
-            semaphore.signal()
-        }.resume()
-
-        _ = semaphore.wait(timeout: .now() + 5)
-        return httpsAvailable
     }
 
     func shouldBlock(url: URL) -> Bool {
@@ -121,7 +99,7 @@ class SecurityPolicyManager {
 
     private func shouldBlockAd(for host: String) -> Bool {
         for rule in adBlockRules {
-            if host.contains(rule) || rule.contains(host) {
+            if host == rule || host.hasSuffix("." + rule) {
                 return true
             }
         }
@@ -130,7 +108,7 @@ class SecurityPolicyManager {
 
     private func shouldBlockTracker(for host: String) -> Bool {
         for rule in trackerBlockRules {
-            if host.contains(rule) || rule.contains(host) {
+            if host == rule || host.hasSuffix("." + rule) {
                 return true
             }
         }
@@ -139,7 +117,7 @@ class SecurityPolicyManager {
 
     private func shouldBlockMaliciousSite(for host: String) -> Bool {
         for rule in maliciousSiteList {
-            if host.contains(rule) || rule.contains(host) {
+            if host == rule || host.hasSuffix("." + rule) {
                 return true
             }
         }
