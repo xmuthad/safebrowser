@@ -97,8 +97,8 @@ jobs:
           fi
 
       - name: Upload build artifacts
-        if: success()
         working-directory: ${{ env.PROJECT_DIR }}
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: SafeBrowser-build-${{ steps.get_tag.outputs.VERSION }}
