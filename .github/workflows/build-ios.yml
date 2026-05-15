@@ -12,10 +12,10 @@ on:
         type: string
 
 env:
-  IOS_VERSION: '26.0'
-  XCODE_VERSION: '16.2'
+  IOS_VERSION: '17.0'
+  XCODE_VERSION: '16.0'
   SCHEME: 'SafeBrowser'
-  SIMULATOR: 'iPhone 17 Pro'
+  SIMULATOR: 'iPhone 15'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -43,10 +43,16 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Verify Xcode
+      - name: Verify Xcode & Find Simulator
+        id: find_sim
         run: |
           xcodebuild -version
-          xcrun simctl list devices available | grep -E "iPhone|iPad" | head -5
+          echo "Available simulators:"
+          xcrun simctl list devices available | grep "iPhone" | head -20
+          # Find first available iPhone simulator
+          SIMULATOR=$(xcrun simctl list devices available | grep "iPhone" | head -n 1 | grep -o "iPhone [0-9A-Za-z ]*" | head -1 || echo "iPhone 15")
+          echo "SIMULATOR=$SIMULATOR" >> $GITHUB_OUTPUT
+          echo "Using simulator: $SIMULATOR"
 
       - name: Install XcodeGen
         run: |
@@ -67,7 +73,7 @@ jobs:
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
+            -destination "platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR }}" \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -79,7 +85,7 @@ jobs:
           xcodebuild -project SafeBrowser.xcodeproj \
             -scheme ${{ env.SCHEME }} \
             -configuration Release \
-            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
+            -destination "platform=iOS Simulator,name=${{ steps.find_sim.outputs.SIMULATOR }}" \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build
