@@ -14,6 +14,9 @@ on:
 env:
   IOS_VERSION: '26.0'
   XCODE_VERSION: '15.0'
+  PROJECT_DIR: 'ios'
+  SCHEME: 'SafeBrowser'
+  SIMULATOR: 'iPhone 15 Pro'
 
 jobs:
   build:
@@ -21,122 +24,101 @@ jobs:
     runs-on: macos-14
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Get tag version
         id: get_tag
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
-            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+            VERSION="${{ github.event.inputs.tag }}"
           else
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            VERSION="${GITHUB_REF#refs/tags/}"
           fi
-
-      - name: Print build info
-        run: |
-          echo "Building version: ${{ steps.get_tag.outputs.VERSION }}"
-          echo "iOS SDK: ${{ env.IOS_VERSION }}"
-          echo "Xcode: ${{ env.XCODE_VERSION }}"
-
-      - name: Checkout code
-        uses: actions/checkout@v4
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Build version: $VERSION"
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Verify Xcode installation
+      - name: Verify Xcode
         run: |
           xcodebuild -version
-          xcrun simctl list devices available | head -10
+          xcrun simctl list devices available | grep -E "iPhone|iPad" | head -5
 
-      - name: Select Xcode
+      - name: Install XcodeGen
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -version
-
-      - name: Install dependencies
-        run: |
-          cd ios
           which xcodegen || brew install xcodegen
           xcodegen --version
 
       - name: Generate Xcode project
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          cd ios
           xcodegen generate
           ls -la *.xcodeproj
 
-      - name: List available simulators
-        id: simulators
-        run: |
-          simulators=$(xcrun simctl list devices available | grep -E "iPhone|iPad" | head -5)
-          echo "$simulators"
-          echo "simulator=$(echo '$simulators' | head -1 | awk '{print $1,$2,$3}')" >> $GITHUB_OUTPUT
-
       - name: Build iOS project (Debug)
+        working-directory: ${{ env.PROJECT_DIR }}
         id: build_debug
         run: |
-          cd ios
           xcodebuild -project SafeBrowser.xcodeproj \
-            -scheme SafeBrowser \
+            -scheme ${{ env.SCHEME }} \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tail -50
+            build
 
       - name: Build iOS project (Release)
+        working-directory: ${{ env.PROJECT_DIR }}
         id: build_release
         run: |
-          cd ios
           xcodebuild -project SafeBrowser.xcodeproj \
-            -scheme SafeBrowser \
+            -scheme ${{ env.SCHEME }} \
             -configuration Release \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tail -50
+            build
 
-      - name: Verify build artifacts
+      - name: List build artifacts
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          echo "Build artifacts:"
-          ls -la ios/DerivedData/Build/Products/
-          find ios/DerivedData -name "*.app" -type d 2>/dev/null | head -5
+          echo "=== Build Artifacts ==="
+          if [ -d "./DerivedData/Build/Products" ]; then
+            ls -la ./DerivedData/Build/Products/
+            find ./DerivedData/Build/Products -name "*.app" -type d
+          else
+            echo "No DerivedData/Build/Products found"
+            find . -name "*.app" -type d 2>/dev/null
+          fi
 
       - name: Upload build artifacts
+        if: success()
+        working-directory: ${{ env.PROJECT_DIR }}
         uses: actions/upload-artifact@v4
         with:
           name: SafeBrowser-build-${{ steps.get_tag.outputs.VERSION }}
           path: |
-            ios/DerivedData/Build/Products/**/*.app
-            ios/DerivedData/Build/Products/**/*.dSYM
-          retention-days: 7
+            ./DerivedData/Build/Products/Release-iphonesimulator/*.app
+            ./DerivedData/Build/Products/Debug-iphonesimulator/*.app
+          retention-days: 14
 
       - name: Build Summary
         if: success()
         run: |
           echo "## ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: ${{ steps.get_tag.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Configuration**: Debug + Release" >> $GITHUB_STEP_SUMMARY
-          echo "**iOS Target**: ${{ env.IOS_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Xcode**: ${{ env.XCODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ steps.get_tag.outputs.VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Configuration | Debug + Release |" >> $GITHUB_STEP_SUMMARY
+          echo "| iOS Target | ${{ env.IOS_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Xcode | ${{ env.XCODE_VERSION }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Debug build: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Release build: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-
-      - name: Set Git Tag
-        if: success() && github.event_name == 'workflow_dispatch'
-        run: |
-          TAG_NAME="${{ steps.get_tag.outputs.VERSION }}"
-          if [[ "$TAG_NAME" != v* ]]; then
-            TAG_NAME="v$TAG_NAME"
-          fi
-          git tag -a "$TAG_NAME" -m "Release $TAG_NAME built by GitHub Actions"
-          git push origin "$TAG_NAME"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Build artifacts uploaded successfully!" >> $GITHUB_STEP_SUMMARY
 
   test:
     name: Run Tests
@@ -153,21 +135,22 @@ jobs:
           xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Generate project
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          cd ios
+          which xcodegen || brew install xcodegen
           xcodegen generate
 
       - name: Run unit tests
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          cd ios
           xcodebuild test \
             -project SafeBrowser.xcodeproj \
-            -scheme SafeBrowser \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+            -scheme ${{ env.SCHEME }} \
+            -destination 'platform=iOS Simulator,name=${{ env.SIMULATOR }}' \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tail -30
+            test
 
       - name: Test Summary
         if: success()
         run: |
-          echo "## ✅ Tests Passed" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
